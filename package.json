@@ -12,6 +12,7 @@
     "dist/",
     "ios/Sources",
     "ios/Tests",
+    "docs/",
     "Package.swift",
     "CapgoCapacitorPay.podspec"
   ],
