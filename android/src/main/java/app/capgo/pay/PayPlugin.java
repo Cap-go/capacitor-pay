@@ -54,7 +54,7 @@ public class PayPlugin extends Plugin {
         try {
             IsReadyToPayRequest request = IsReadyToPayRequest.fromJson(requestJson.toString());
             Task<Boolean> readyTask = client.isReadyToPay(request);
-            readyTask.addOnCompleteListener(task -> {
+            readyTask.addOnCompleteListener((task) -> {
                 boolean isReady = false;
                 if (task.isSuccessful()) {
                     Boolean value = task.getResult();
@@ -196,9 +196,7 @@ public class PayPlugin extends Plugin {
     }
 
     private PaymentsClient createPaymentsClient(int environment) {
-        Wallet.WalletOptions options = new Wallet.WalletOptions.Builder()
-            .setEnvironment(environment)
-            .build();
+        Wallet.WalletOptions options = new Wallet.WalletOptions.Builder().setEnvironment(environment).build();
         return Wallet.getPaymentsClient(getContext(), options);
     }
 
@@ -221,19 +219,14 @@ public class PayPlugin extends Plugin {
     }
 
     private static final class GooglePayRequestFactory {
+
         private static JSONObject defaultIsReadyToPayRequest() throws JSONException {
             JSONObject cardPaymentMethod = new JSONObject();
             cardPaymentMethod.put("type", "CARD");
 
             JSONObject parameters = new JSONObject();
-            parameters.put("allowedAuthMethods", new JSONArray()
-                .put("PAN_ONLY")
-                .put("CRYPTOGRAM_3DS"));
-            parameters.put("allowedCardNetworks", new JSONArray()
-                .put("AMEX")
-                .put("DISCOVER")
-                .put("MASTERCARD")
-                .put("VISA"));
+            parameters.put("allowedAuthMethods", new JSONArray().put("PAN_ONLY").put("CRYPTOGRAM_3DS"));
+            parameters.put("allowedCardNetworks", new JSONArray().put("AMEX").put("DISCOVER").put("MASTERCARD").put("VISA"));
             cardPaymentMethod.put("parameters", parameters);
 
             JSONObject request = new JSONObject();

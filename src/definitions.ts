@@ -24,17 +24,9 @@ export type ApplePayMerchantCapability = '3DS' | 'credit' | 'debit' | 'emv';
 
 export type ApplePaySummaryItemType = 'final' | 'pending';
 
-export type ApplePayContactField =
-  | 'emailAddress'
-  | 'name'
-  | 'phoneNumber'
-  | 'postalAddress';
+export type ApplePayContactField = 'emailAddress' | 'name' | 'phoneNumber' | 'postalAddress';
 
-export type ApplePayShippingType =
-  | 'shipping'
-  | 'delivery'
-  | 'servicePickup'
-  | 'storePickup';
+export type ApplePayShippingType = 'shipping' | 'delivery' | 'servicePickup' | 'storePickup';
 
 export interface ApplePaySummaryItem {
   label: string;

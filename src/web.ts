@@ -9,9 +9,7 @@ import type {
 } from './definitions';
 
 export class PayWeb extends WebPlugin implements PayPlugin {
-  async isPayAvailable(
-    _options?: PayAvailabilityOptions,
-  ): Promise<PayAvailabilityResult> {
+  async isPayAvailable(_options?: PayAvailabilityOptions): Promise<PayAvailabilityResult> {
     return {
       available: false,
       platform: 'web',
@@ -26,8 +24,6 @@ export class PayWeb extends WebPlugin implements PayPlugin {
   }
 
   async requestPayment(_options: PayPaymentOptions): Promise<PayPaymentResult> {
-    throw this.unimplemented(
-      'Native payments are not implemented on the web. Use a native platform.',
-    );
+    throw this.unimplemented('Native payments are not implemented on the web. Use a native platform.');
   }
 }
