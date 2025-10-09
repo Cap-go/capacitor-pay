@@ -16,6 +16,8 @@ Follow this checklist to enable Google Pay for the Android implementation of `@c
 3. Provide the merchant name that will appear in the Google Pay sheet.
 4. Verify any requested documentation to enable production processing.
 
+![Google Pay docs header logo](images/google-pay-logo.svg)
+
 ## 3. Configure payment processing
 
 Decide between a **gateway** (e.g., Stripe, Adyen, Braintree) or **direct** processor integration:
@@ -31,7 +33,25 @@ Document these values because they must be inserted into the `paymentDataRequest
 2. On every test device, add one of the sandbox cards to Google Wallet.
 3. Install the latest Google Play services if prompted.
 
-## 5. Update the Android project
+## 5. Backend token processing
+
+Handle the encrypted payment data server-side before charging the customer:
+
+- Receive the JSON payload returned by `Pay.requestPayment`. The `paymentData` object includes the payment method, tokenization type, and gateway payload.
+- Forward the payment token to your payment processor’s SDK over HTTPS. For gateway integrations, pass the `paymentMethodData.tokenizationSpecification.parameters` unchanged.
+- Validate essential fields (transaction amount, currency, merchant identifiers) against your order database before capturing payment.
+- Log the Google Pay transaction IDs securely for reconciliation and dispute handling; avoid storing full PAN or raw token data.
+
+## 6. Configure the Android project in Android Studio
+
+1. Open the Android module in Android Studio and make sure the Google Maven repository is available in both the project and app `build.gradle` files.
+2. Confirm `com.google.android.gms:play-services-wallet` is present (the plugin adds it by default) and that the Android Gradle Plugin is v8.0 or newer.
+3. In `android/app/src/main/AndroidManifest.xml`, set the minimum SDK to 23+ and ensure `uses-permission android:name="android.permission.INTERNET"` is present.
+4. If you rely on clear-text HTTP endpoints during development, define a `network_security_config` resource and reference it from the manifest. Production builds should use HTTPS exclusively.
+5. Generate a release keystore and upload the SHA-1 certificates for every signing key (debug and release) to the Google Pay business console so request signatures match the client.
+6. Clean/rebuild the project to let Gradle register the wallet dependency and verify no build warnings remain.
+
+## 7. Update the Android project
 
 1. Ensure `com.google.android.gms:play-services-wallet` is included in `android/build.gradle` (already added by the plugin).
 2. In your app code, build a `paymentDataRequest` JSON matching the processor configuration:
@@ -41,30 +61,29 @@ Document these values because they must be inserted into the `paymentDataRequest
    - `merchantInfo` for user-facing display
 3. Provide this JSON to `Pay.requestPayment({ google: { ... } })`.
 
-## 6. Use the correct environment
+## 8. Use the correct environment
 
 - During development, set `environment: 'test'` and rely on test card numbers.
 - For production builds, switch to `environment: 'production'` and ensure your business profile is approved.
 
-## 7. Add required app manifest entries
+## 9. Add required app manifest entries
 
 Google Pay itself does not require additional manifest permissions beyond Internet access, but your processor may require network security configuration or HTTPS endpoints. Confirm:
 
 - `android:usesCleartextTraffic="false"` (or a network security config for dev environments).
 - Any callback URLs you use are served over HTTPS.
 
-## 8. Test on device
+## 10. Test on device
 
 1. Build and install the Android app on a device with the sandbox card.
 2. Call `Pay.isPayAvailable` with the same `isReadyToPayRequest` JSON you will use in production.
 3. Confirm the method returns `available: true` and `google.isReady: true`.
 4. Trigger `Pay.requestPayment` and complete a transaction with a test card to verify token payloads.
 
-## 9. Launch to production
+## 11. Launch to production
 
 1. Submit your app for Google Play review with Google Pay screenshots or screen recordings if requested.
 2. Promote the business profile to production in the Google Pay & Wallet Console.
 3. Switch the runtime configuration to the production environment and merchant details.
 
 Completing these steps prepares your Android app to process payments through Google Pay using the Capacitor plugin.
-

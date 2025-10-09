@@ -15,12 +15,25 @@ This document walks through the steps required to enable Apple Pay in a project 
 3. Enter a description and a unique identifier following the pattern `merchant.com.yourcompany.app`.
 4. Save the identifier. This Merchant ID will later be referenced in code as `merchantIdentifier`.
 
-## 3. Add the Apple Pay capability
+![Apple Pay docs header logo](images/apple-pay-logo.svg)
+
+## 3. Add and verify the Apple Pay capability in Xcode
 
 1. Open the iOS workspace or the Capacitor iOS project in Xcode.
-2. Select the app target, open the **Signing & Capabilities** tab, and click **+ Capability**.
-3. Choose **Apple Pay**, then select the merchant ID you created earlier.
-4. Xcode generates an `App.entitlements` file with the `com.apple.developer.in-app-payments` entry. Confirm that the Merchant ID is listed.
+2. Select the **App** target, open the **Signing & Capabilities** tab, and click **+ Capability**.
+3. Choose **Apple Pay**, then attach the merchant IDs you created earlier. Xcode adds them to the entitlements file automatically.
+4. Expand the capability to confirm the **Supported Networks** list reflects the brands you plan to enable (for example, VISA, MasterCard, AmEx).
+5. Xcode creates an entitlements file next to your target (typically `App/App.entitlements`) that contains the `com.apple.developer.in-app-payments` key. Open the file to verify every merchant identifier expected by the app is present:
+
+   ```xml
+   <key>com.apple.developer.in-app-payments</key>
+   <array>
+     <string>merchant.com.example.app</string>
+   </array>
+   ```
+
+6. If you ship extensions (widgets, watch apps, or app clips) that also present Apple Pay, repeat the capability assignment on each target so the entitlement is available everywhere.
+7. Build the project for a real device once to refresh provisioning profiles. The Xcode status message under **General → Signing** should report that the signing certificate is valid; if not, re-download the profiles associated with the merchant IDs.
 
 ## 4. Generate the payment processing certificate
 
@@ -44,24 +57,32 @@ Follow your processor’s onboarding steps to complete tokenization.
 
 If your payment processor requires Apple Pay on the web, add your site domain in the developer portal and upload the `apple-developer-merchantid-domain-association` file to `https://<domain>/.well-known/`.
 
-## 7. Update the Capacitor project
+## 7. Backend session validation
+
+Your server must broker the merchant validation handshake before the device can show the Apple Pay sheet:
+
+- Listen for the validation URL emitted by the plugin. On iOS this arrives during the `onvalidatemerchant` phase of `PKPaymentAuthorizationController`.
+- From your backend send a `POST` request to `https://apple-pay-gateway.apple.com/paymentservices/startSession` including your merchant identifier, domain name, and display name. Sign the request with the merchant identity certificate created in step 5.
+- Return the Apple session JSON directly to the device. The plugin forwards it to PassKit to complete the handshake.
+- Keep the session ephemeral—log minimal metadata for auditing and never store the session payload itself.
+
+## 8. Update the Capacitor project
 
 - In `Pay.requestPayment`, set `merchantIdentifier` to the Merchant ID created earlier.
 - Provide a list of networks (`supportedNetworks`) that matches the networks approved by your processor.
 - Include realistic summary items and ensure the total is a final amount.
 
-## 8. Build and test on device
+## 9. Build and test on device
 
 - Apple Pay is unavailable on the iOS simulator. Use a real device signed into an Apple ID with a supported card in Wallet.
 - Install the build via Xcode or TestFlight.
 - Trigger `Pay.isPayAvailable()` to ensure the device reports `available: true`.
 - Call `Pay.requestPayment` and verify that the Apple Pay sheet loads and returns a payment token.
 
-## 9. Move to production
+## 10. Move to production
 
 - Disable the sandbox merchant environment in your processor dashboard once you’re ready for production.
 - Rebuild the app using distribution certificates and submit the build for App Review.
 - Provide Apple with sample test accounts or screenshots showing the Apple Pay flow, if requested.
 
 After these steps the Capacitor plugin can successfully authorize payments using Apple Pay.
-
