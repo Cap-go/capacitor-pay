@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [7.1.0](https://github.com/Cap-go/capacitor-pay/compare/7.0.9...7.1.0) (2025-10-23)
+
+
+### Features
+
+* add getPluginVersion method to PayPlugin and web implementation ([caf065c](https://github.com/Cap-go/capacitor-pay/commit/caf065c4e05e6004052032fbde7c27bb90c7e944))
+
+
+### Bug Fixes
+
+* remove content field from Discord release webhook ([cff416c](https://github.com/Cap-go/capacitor-pay/commit/cff416cb7f13e79b1ee36443dd270414a3c73c31))
+
 ## [7.0.9](https://github.com/Cap-go/capacitor-pay/compare/7.0.8...7.0.9) (2025-10-16)
 
 ## [7.0.8](https://github.com/Cap-go/capacitor-pay/compare/7.0.7...7.0.8) (2025-10-15)
