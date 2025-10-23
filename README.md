@@ -121,6 +121,7 @@ if (availability.platform === 'ios') {
 
 * [`isPayAvailable(...)`](#ispayavailable)
 * [`requestPayment(...)`](#requestpayment)
+* [`getPluginVersion()`](#getpluginversion)
 * [Interfaces](#interfaces)
 * [Type Aliases](#type-aliases)
 
@@ -161,6 +162,19 @@ Provide the Apple Pay configuration on iOS and the Google Pay configuration on A
 | **`options`** | <code><a href="#paypaymentoptions">PayPaymentOptions</a></code> |
 
 **Returns:** <code>Promise&lt;<a href="#paypaymentresult">PayPaymentResult</a>&gt;</code>
+
+--------------------
+
+
+### getPluginVersion()
+
+```typescript
+getPluginVersion() => Promise<{ version: string; }>
+```
+
+Get the native Capacitor plugin version
+
+**Returns:** <code>Promise&lt;{ version: string; }&gt;</code>
 
 --------------------
 
