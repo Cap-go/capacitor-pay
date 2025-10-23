@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [7.1.1](https://github.com/Cap-go/capacitor-pay/compare/7.1.0...7.1.1) (2025-10-23)
+
+
+### Bug Fixes
+
+* remove footer in discord ([f455a40](https://github.com/Cap-go/capacitor-pay/commit/f455a40b80d760a28f20bbd40f9645036d84b9eb))
+* update Discord release webhook username to include repository name ([5fdcf15](https://github.com/Cap-go/capacitor-pay/commit/5fdcf151777423f328a1c8ed35b88b2be9ec84b3))
+
 ## [7.1.0](https://github.com/Cap-go/capacitor-pay/compare/7.0.9...7.1.0) (2025-10-23)
 
 
