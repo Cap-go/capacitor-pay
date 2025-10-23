@@ -26,4 +26,8 @@ export class PayWeb extends WebPlugin implements PayPlugin {
   async requestPayment(_options: PayPaymentOptions): Promise<PayPaymentResult> {
     throw this.unimplemented('Native payments are not implemented on the web. Use a native platform.');
   }
+
+  async getPluginVersion(): Promise<{ version: string }> {
+    return { version: 'web' };
+  }
 }

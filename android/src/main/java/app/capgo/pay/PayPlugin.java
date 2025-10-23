@@ -26,6 +26,8 @@ import org.json.JSONObject;
 @CapacitorPlugin(name = "Pay")
 public class PayPlugin extends Plugin {
 
+    private final String PLUGIN_VERSION = "";
+
     private static final int LOAD_PAYMENT_DATA_REQUEST_CODE = 8001;
 
     private PluginCall pendingPaymentCall;
@@ -233,6 +235,17 @@ public class PayPlugin extends Plugin {
             request.put("allowedPaymentMethods", new JSONArray().put(cardPaymentMethod));
 
             return request;
+        }
+    }
+
+    @PluginMethod
+    public void getPluginVersion(final PluginCall call) {
+        try {
+            final JSObject ret = new JSObject();
+            ret.put("version", this.PLUGIN_VERSION);
+            call.resolve(ret);
+        } catch (final Exception e) {
+            call.reject("Could not get plugin version", e);
         }
     }
 }

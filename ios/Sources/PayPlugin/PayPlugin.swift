@@ -5,11 +5,13 @@ import PassKit
 
 @objc(PayPlugin)
 public class PayPlugin: CAPPlugin, CAPBridgedPlugin, PKPaymentAuthorizationControllerDelegate {
+    private let PLUGIN_VERSION: String = ""
     public let identifier = "PayPlugin"
     public let jsName = "Pay"
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "isPayAvailable", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "requestPayment", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "requestPayment", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getPluginVersion", returnType: CAPPluginReturnPromise)
     ]
 
     private var pendingApplePayCall: CAPPluginCall?
@@ -451,4 +453,9 @@ private enum PayPluginError: LocalizedError {
             return message
         }
     }
+
+    @objc func getPluginVersion(_ call: CAPPluginCall) {
+        call.resolve(["version": self.PLUGIN_VERSION])
+    }
+
 }
