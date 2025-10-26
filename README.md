@@ -8,6 +8,10 @@
 
 Capacitor plugin to trigger native payments with Apple Pay and Google Pay using a unified JavaScript API.
 
+## Documentation
+
+The most complete doc is available here: https://capgo.app/docs/plugins/pay/
+
 ## Install
 
 ```bash
