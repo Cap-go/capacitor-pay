@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [7.1.4](https://github.com/Cap-go/capacitor-pay/compare/7.1.3...7.1.4) (2025-10-27)
+
+
+### Bug Fixes
+
+* renovate capacitor dep ([4c7fb5c](https://github.com/Cap-go/capacitor-pay/commit/4c7fb5c8af223ec0cfa7e3640f3bdafd3a2816d5))
+
 ## [7.1.3](https://github.com/Cap-go/capacitor-pay/compare/7.1.2...7.1.3) (2025-10-26)
 
 
