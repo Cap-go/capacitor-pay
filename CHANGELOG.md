@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [7.1.5](https://github.com/Cap-go/capacitor-pay/compare/7.1.4...7.1.5) (2025-10-29)
+
+
+### Bug Fixes
+
+* CI/CD config ([1c912df](https://github.com/Cap-go/capacitor-pay/commit/1c912df4ded7070363eb495750e615252a03652c))
+* model github action ([d00fbf8](https://github.com/Cap-go/capacitor-pay/commit/d00fbf8dee75e4b5248ed2ab39381361b0ca6f5b))
+* update github action ([4febd5e](https://github.com/Cap-go/capacitor-pay/commit/4febd5e423fbad0b35090ae57cf376a9f3840137))
+
 ## [7.1.4](https://github.com/Cap-go/capacitor-pay/compare/7.1.3...7.1.4) (2025-10-27)
 
 
