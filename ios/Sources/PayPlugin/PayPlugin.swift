@@ -442,6 +442,10 @@ public class PayPlugin: CAPPlugin, CAPBridgedPlugin, PKPaymentAuthorizationContr
         applePayController?.delegate = nil
         applePayController = nil
     }
+
+    @objc func getPluginVersion(_ call: CAPPluginCall) {
+        call.resolve(["version": self.PLUGIN_VERSION])
+    }
 }
 
 private enum PayPluginError: LocalizedError {
@@ -453,9 +457,4 @@ private enum PayPluginError: LocalizedError {
             return message
         }
     }
-
-    @objc func getPluginVersion(_ call: CAPPluginCall) {
-        call.resolve(["version": self.PLUGIN_VERSION])
-    }
-
 }
