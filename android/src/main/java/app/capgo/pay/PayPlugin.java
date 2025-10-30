@@ -26,7 +26,7 @@ import org.json.JSONObject;
 @CapacitorPlugin(name = "Pay")
 public class PayPlugin extends Plugin {
 
-    private final String pluginVersion = "7.1.6";
+    private final String pluginVersion = "7.1.7";
 
     private static final int LOAD_PAYMENT_DATA_REQUEST_CODE = 8001;
 
