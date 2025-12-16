@@ -25,6 +25,7 @@
   "bugs": {
     "url": "https://github.com/Cap-go/capacitor-pay/issues"
   },
+  "homepage": "https://capgo.app/docs/plugins/pay/",
   "keywords": [
     "capacitor",
     "plugin",
