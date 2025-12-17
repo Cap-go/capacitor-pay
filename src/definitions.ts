@@ -1,38 +1,38 @@
 export type PayPlatform = 'ios' | 'android' | 'web';
 
 export type ApplePayNetwork =
-  | 'AmEx',
-  | 'Bancomat',
-  | 'Bancontact',
-  | 'PagoBancomat',
-  | 'CarteBancaire',
-  | 'CarteBancaires',
-  | 'CartesBancaires',
-  | 'ChinaUnionPay',
-  | 'Dankort',
-  | 'Discover',
-  | 'Eftpos',
-  | 'Electron',
-  | 'Elo',
-  | 'girocard',
-  | 'Himyan',
-  | 'Interac',
-  | 'iD',
-  | 'Jaywan',
-  | 'JCB',
-  | 'mada',
-  | 'Maestro',
-  | 'MasterCard',
-  | 'Meeza',
-  | 'Mir',
-  | 'MyDebit',
-  | 'NAPAS',
-  | 'BankAxept',
-  | 'PostFinanceAG',
-  | 'PrivateLabel',
-  | 'QUICPay',
-  | 'Suica',
-  | 'Visa',
+  | 'AmEx'
+  | 'Bancomat'
+  | 'Bancontact'
+  | 'PagoBancomat'
+  | 'CarteBancaire'
+  | 'CarteBancaires'
+  | 'CartesBancaires'
+  | 'ChinaUnionPay'
+  | 'Dankort'
+  | 'Discover'
+  | 'Eftpos'
+  | 'Electron'
+  | 'Elo'
+  | 'girocard'
+  | 'Himyan'
+  | 'Interac'
+  | 'iD'
+  | 'Jaywan'
+  | 'JCB'
+  | 'mada'
+  | 'Maestro'
+  | 'MasterCard'
+  | 'Meeza'
+  | 'Mir'
+  | 'MyDebit'
+  | 'NAPAS'
+  | 'BankAxept'
+  | 'PostFinanceAG'
+  | 'PrivateLabel'
+  | 'QUICPay'
+  | 'Suica'
+  | 'Visa'
   | 'VPay';
 
 export type ApplePayMerchantCapability = '3DS' | 'credit' | 'debit' | 'emv';
