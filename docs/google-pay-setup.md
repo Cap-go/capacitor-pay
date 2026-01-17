@@ -78,12 +78,15 @@ Google Pay itself does not require additional manifest permissions beyond Intern
 1. Build and install the Android app on a device with the sandbox card.
 2. Call `Pay.isPayAvailable` with the same `isReadyToPayRequest` JSON you will use in production.
 3. Confirm the method returns `available: true` and `google.isReady: true`.
-4. Trigger `Pay.requestPayment` and complete a transaction with a test card to verify token payloads.
+4. Add event listeners for `onAuthorized`, `onCanceled`, and `onError` to handle different Google Pay results.
+5. Trigger `Pay.requestPayment` and complete a transaction with a test card.
+6. Verify the payment token is received by `onAuthorized` event and can be processed by your backend.
 
 ## 11. Launch to production
 
 1. Submit your app for Google Play review with Google Pay screenshots or screen recordings if requested.
 2. Promote the business profile to production in the Google Pay & Wallet Console.
-3. Switch the runtime configuration to the production environment and merchant details.
+3. Make sure you handle all Google Pay events (`onAuthorized` and `onCanceled`) and errors (`onError`) gracefully in your app.
+4. Switch the runtime configuration to the production environment and merchant details.
 
 Completing these steps prepares your Android app to process payments through Google Pay using the Capacitor plugin.
