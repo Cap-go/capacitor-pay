@@ -58,7 +58,7 @@ Document these values because they must be inserted into the `paymentDataRequest
 
 Handle the encrypted payment data server-side before charging the customer:
 
-- Receive the JSON payload returned by `Pay.requestPayment`. The `paymentData` object includes the payment method, tokenization type, and gateway payload.
+- Receive the JSON payload from the `onAuthorized` listener after `Pay.requestPayment`. The `paymentData` object includes the payment method, tokenization type, and gateway payload.
 - Forward the payment token to your payment processor's SDK over HTTPS. For gateway integrations, pass the `paymentMethodData.tokenizationSpecification.parameters` unchanged.
 - Validate essential fields (transaction amount, currency, merchant identifiers) against your order database before capturing payment.
 - Log the Google Pay transaction IDs securely for reconciliation and dispute handling; avoid storing full PAN or raw token data.
