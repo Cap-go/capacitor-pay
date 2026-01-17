@@ -171,7 +171,15 @@ public class PayPlugin extends Plugin {
             return;
         }
 
-        Exception ex = new Exception("Google Pay returned unexpected result code: " + resultCode);
+        String message = "Google Pay returned unexpected result code: " + resultCode;
+        if (resultCode == AutoResolveHelper.RESULT_ERROR) {
+            Status status = AutoResolveHelper.getStatusFromIntent(data);
+            message = (status != null && status.getStatusMessage() != null)
+                    ? status.getStatusMessage()
+                    : "Google Pay returned an error.";
+        }
+
+        Exception ex = new Exception(message);
         this.emitError(ex);
     }
 
@@ -204,7 +212,9 @@ public class PayPlugin extends Plugin {
             result.put("platform", "android");
             result.put("google", googleResult);
 
+            Logger.debug("PayPlugin", "Payment authorized");
             notifyListeners("onAuthorized", result, true);
+
             this.paymentInProgress = false;
         } catch (JSONException ex) {
             this.emitError(ex);
@@ -237,15 +247,20 @@ public class PayPlugin extends Plugin {
         error.put("message", message);
         error.put("platform", "android");
         error.put("statusCode", "ERROR");
+
+        Logger.error("PayPlugin", message, ex);
         notifyListeners("onError", error, true);
     }
 
     private void emitCancel() {
         this.paymentInProgress = false;
         JSObject result = new JSObject();
-        result.put("message", "Payment canceled");
+        String message = "Payment canceled";
+        result.put("message", message);
         result.put("platform", "android");
         result.put("statusCode", "CANCELED");
+
+        Logger.debug("PayPlugin", message);
         notifyListeners("onCanceled", result, true);
     }
 

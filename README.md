@@ -153,6 +153,7 @@ if (availability.platform === 'ios') {
 * [`addListener('onAuthorized', ...)`](#addlisteneronauthorized-)
 * [`addListener('onCanceled', ...)`](#addlisteneroncanceled-)
 * [`addListener('onError', ...)`](#addlisteneronerror-)
+* [`removeAllListeners()`](#removealllisteners)
 * [Interfaces](#interfaces)
 * [Type Aliases](#type-aliases)
 
@@ -266,6 +267,17 @@ Works only on Google Pay.
 | **`listenerFunc`** | <code>(error: { platform: 'ios' \| 'android'; message: string; statusCode: 'ERROR'; }) =&gt; void</code> |
 
 **Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
+
+--------------------
+
+
+### removeAllListeners()
+
+```typescript
+removeAllListeners() => Promise<void>
+```
+
+Remove all the listeners that are attached to this plugin.
 
 --------------------
 

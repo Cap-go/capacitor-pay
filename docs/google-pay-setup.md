@@ -9,6 +9,27 @@ Follow this checklist to enable Google Pay for the Android implementation of `@c
 - Android Studio Hedgehog (or newer) with the latest Android SDK tools.
 - Test devices running Google Play services.
 
+### Supported card networks
+For `allowedCardNetworks` options, the possible values are:
+- `AMEX`: American Express card network.
+- `DISCOVER`: Discover card network.
+- `ELECTRON`: Visa's Electron card network.
+   - Note that this option can only be set when `transactionInfo.countryCode` is set to `"BR"`, and `allowedCardNetworks` must also contain `VISA`
+   - For processing purposes, you should use this as an indication that the card must be processed through the Electron debit network.
+- `ELO`: Elo card network.
+   - Note that this option can only be set when `transactionInfo.countryCode` is set to `"BR"`.
+- `ELO_DEBIT`: Elo's debit network rail.
+   - Note that this option can only be set when `transactionInfo.countryCode` is set to `"BR"`, and `allowedCardNetworks` must also contain `ELO`
+   - For processing purposes, you should use this as an indication that the card must be processed through the ELO debit network.
+- `INTERAC`: Interac card network.
+- `JCB`: JCB card network.
+- `MAESTRO`: Maestro card network.
+   - Note that this option can only be set when `transactionInfo.countryCode` is set to `"BR"`, and `allowedCardNetworks` must also contain `MASTERCARD`
+   - For processing purposes, you should use this as an indication that the card must be processed through the Maestro debit network.
+- `MASTERCARD`: Mastercard card network.
+- `VISA`: Visa card network.
+[Read more about supported card networks in Google Pay.](https://developers.google.com/pay/api/web/reference/request-objects#CardParameters)
+
 ## 2. Create a Google Pay business profile
 
 1. Open the [Google Pay & Wallet Console](https://pay.google.com/business/console/).
@@ -38,7 +59,7 @@ Document these values because they must be inserted into the `paymentDataRequest
 Handle the encrypted payment data server-side before charging the customer:
 
 - Receive the JSON payload returned by `Pay.requestPayment`. The `paymentData` object includes the payment method, tokenization type, and gateway payload.
-- Forward the payment token to your payment processor’s SDK over HTTPS. For gateway integrations, pass the `paymentMethodData.tokenizationSpecification.parameters` unchanged.
+- Forward the payment token to your payment processor's SDK over HTTPS. For gateway integrations, pass the `paymentMethodData.tokenizationSpecification.parameters` unchanged.
 - Validate essential fields (transaction amount, currency, merchant identifiers) against your order database before capturing payment.
 - Log the Google Pay transaction IDs securely for reconciliation and dispute handling; avoid storing full PAN or raw token data.
 

@@ -199,6 +199,7 @@ export interface GooglePayPaymentOptions {
   /**
    * Raw `PaymentDataRequest` JSON as defined by the Google Pay API.
    * Provide transaction details, merchant info, and tokenization parameters.
+   *
    * @see https://developers.google.com/pay/api/android/reference/request-objects#PaymentDataRequest
    */
   paymentDataRequest: google.payments.api.PaymentDataRequest;
@@ -285,4 +286,9 @@ export interface PayPlugin {
     eventName: 'onError',
     listenerFunc: (error: { platform: PayPaymentResult['platform']; message: string; statusCode: 'ERROR' }) => void,
   ): Promise<PluginListenerHandle>;
+
+  /**
+   * Remove all the listeners that are attached to this plugin.
+   */
+  removeAllListeners(): Promise<void>;
 }
