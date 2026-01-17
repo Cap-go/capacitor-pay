@@ -2,12 +2,13 @@ package app.capgo.pay;
 
 import android.app.Activity;
 import android.content.Intent;
+
+import androidx.activity.ComponentActivity;
 import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.IntentSenderRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Logger;
 import com.getcapacitor.Plugin;
@@ -140,7 +141,7 @@ public class PayPlugin extends Plugin {
     private boolean ensureLauncher() {
         if (googlePayLauncher != null) return true;
 
-        AppCompatActivity activity = getActivity();
+        ComponentActivity activity = getActivity();
         if (activity == null) {
             return false;
         }
