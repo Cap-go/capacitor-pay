@@ -86,17 +86,17 @@ if (availability.platform === 'ios') {
   });
   console.log(result.apple?.paymentData);
 } else if (availability.platform === 'android') {
-  await addEventListener('onAuthorized', (result) => {
+  await addListener('onAuthorized', (result) => {
     console.log('Payment authorized:', result.google.paymentData);
     // Process the payment token on your backend server here.
   });
 
-  await addEventListener('onCanceled', (result) => {
+  await addListener('onCanceled', (result) => {
     console.log('Payment canceled by user', result);
     // Handle the cancellation gracefully in your UI.
   });
 
-  await addEventListener('onError', (error) => {
+  await addListener('onError', (error) => {
     console.error('Payment error:', error);
     // Handle the error gracefully in your UI.
   });
