@@ -134,6 +134,7 @@ public class PayPlugin extends Plugin {
             client.loadPaymentData(request).addOnSuccessListener(this::emitAuthorized).addOnFailureListener(this::emitError);
             call.resolve();
         } catch (Exception ex) {
+            this.paymentInProgress = false;
             call.reject("Failed to launch Google Pay.", ex);
         }
     }
