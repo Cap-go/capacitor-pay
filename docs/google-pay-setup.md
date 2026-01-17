@@ -14,18 +14,18 @@ For `allowedCardNetworks` options, the possible values are:
 - `AMEX`: American Express card network.
 - `DISCOVER`: Discover card network.
 - `ELECTRON`: Visa's Electron card network.
-   - Note that this option can only be set when `transactionInfo.countryCode` is set to `"BR"`, and `allowedCardNetworks` must also contain `VISA`
-   - For processing purposes, you should use this as an indication that the card must be processed through the Electron debit network.
+  - Note that this option can only be set when `transactionInfo.countryCode` is set to `"BR"`, and `allowedCardNetworks` must also contain `VISA`
+  - For processing purposes, you should use this as an indication that the card must be processed through the Electron debit network.
 - `ELO`: Elo card network.
-   - Note that this option can only be set when `transactionInfo.countryCode` is set to `"BR"`.
+  - Note that this option can only be set when `transactionInfo.countryCode` is set to `"BR"`.
 - `ELO_DEBIT`: Elo's debit network rail.
-   - Note that this option can only be set when `transactionInfo.countryCode` is set to `"BR"`, and `allowedCardNetworks` must also contain `ELO`
-   - For processing purposes, you should use this as an indication that the card must be processed through the ELO debit network.
+  - Note that this option can only be set when `transactionInfo.countryCode` is set to `"BR"`, and `allowedCardNetworks` must also contain `ELO`
+  - For processing purposes, you should use this as an indication that the card must be processed through the ELO debit network.
 - `INTERAC`: Interac card network.
 - `JCB`: JCB card network.
 - `MAESTRO`: Maestro card network.
-   - Note that this option can only be set when `transactionInfo.countryCode` is set to `"BR"`, and `allowedCardNetworks` must also contain `MASTERCARD`
-   - For processing purposes, you should use this as an indication that the card must be processed through the Maestro debit network.
+  - Note that this option can only be set when `transactionInfo.countryCode` is set to `"BR"`, and `allowedCardNetworks` must also contain `MASTERCARD`
+  - For processing purposes, you should use this as an indication that the card must be processed through the Maestro debit network.
 - `MASTERCARD`: Mastercard card network.
 - `VISA`: Visa card network.
 [Read more about supported card networks in Google Pay.](https://developers.google.com/pay/api/web/reference/request-objects#CardParameters)
