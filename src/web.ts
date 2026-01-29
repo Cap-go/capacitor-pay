@@ -19,6 +19,7 @@ export class PayWeb extends WebPlugin implements PayPlugin {
       },
       google: {
         isReady: false,
+        paymentMethodPresent: undefined,
       },
     };
   }

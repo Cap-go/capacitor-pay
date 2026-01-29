@@ -1,3 +1,5 @@
+import type { PluginListenerHandle } from '@capacitor/core';
+
 export type PayPlatform = 'ios' | 'android' | 'web';
 
 export type ApplePayNetwork =
@@ -170,15 +172,23 @@ export interface GooglePayAvailabilityOptions {
   /**
    * Raw `IsReadyToPayRequest` JSON as defined by the Google Pay API.
    * Supply the card networks and auth methods you intend to support at runtime.
+   *
+   * @see https://developers.google.com/pay/api/android/reference/request-objects#IsReadyToPayRequest
    */
-  isReadyToPayRequest?: Record<string, unknown>;
+  isReadyToPayRequest: google.payments.api.IsReadyToPayRequest;
 }
 
 export interface GooglePayAvailabilityResult {
   /**
-   * Indicates whether the Google Pay API is available for the supplied parameters.
+   * Whether the user is able to provide payment information through the Google Pay payment sheet.
    */
-  isReady: boolean;
+  isReady: google.payments.api.IsReadyToPayResponse['result'];
+  /**
+   * The current user's ability to pay with one or more of the payment methods specified in `IsReadyToPayRequest.allowedPaymentMethods`.
+   *
+   * This property only exists if `IsReadyToPayRequest.existingPaymentMethodRequired` was set to `true`. The property value will always be `true` if the request is configured for a test environment.
+   */
+  paymentMethodPresent: google.payments.api.IsReadyToPayResponse['paymentMethodPresent'];
 }
 
 export interface GooglePayPaymentOptions {
@@ -189,15 +199,19 @@ export interface GooglePayPaymentOptions {
   /**
    * Raw `PaymentDataRequest` JSON as defined by the Google Pay API.
    * Provide transaction details, merchant info, and tokenization parameters.
+   *
+   * @see https://developers.google.com/pay/api/android/reference/request-objects#PaymentDataRequest
    */
-  paymentDataRequest: Record<string, unknown>;
+  paymentDataRequest: google.payments.api.PaymentDataRequest;
 }
 
 export interface GooglePayPaymentResult {
   /**
    * Payment data returned by Google Pay.
+   *
+   * @see https://developers.google.com/pay/api/android/reference/response-objects#PaymentData
    */
-  paymentData: Record<string, unknown>;
+  paymentData: google.payments.api.PaymentData;
 }
 
 export interface PayAvailabilityOptions {
@@ -220,7 +234,7 @@ export interface PayPaymentOptions {
 export interface PayPaymentResult {
   platform: Exclude<PayPlatform, 'web'>;
   apple?: ApplePayPaymentResult;
-  google?: GooglePayPaymentResult;
+  google?: void;
 }
 
 export interface PayPlugin {
@@ -242,4 +256,39 @@ export interface PayPlugin {
    * @throws An error if the something went wrong
    */
   getPluginVersion(): Promise<{ version: string }>;
+
+  /**
+   * Add event listener for Google Pay authorized payments.
+   *
+   * Works only on Google Pay.
+   */
+  addListener(
+    eventName: 'onAuthorized',
+    listenerFunc: (result: { platform: PayPaymentResult['platform']; google: GooglePayPaymentResult }) => void,
+  ): Promise<PluginListenerHandle>;
+
+  /**
+   * Add event listener for Google Pay canceled payments.
+   *
+   * Works only on Google Pay.
+   */
+  addListener(
+    eventName: 'onCanceled',
+    listenerFunc: (result: { platform: PayPaymentResult['platform']; message: string; statusCode: 'CANCELED' }) => void,
+  ): Promise<PluginListenerHandle>;
+
+  /**
+   * Add event listener for Google Pay errors.
+   *
+   * Works only on Google Pay.
+   */
+  addListener(
+    eventName: 'onError',
+    listenerFunc: (error: { platform: PayPaymentResult['platform']; message: string; statusCode: 'ERROR' }) => void,
+  ): Promise<PluginListenerHandle>;
+
+  /**
+   * Remove all the listeners that are attached to this plugin.
+   */
+  removeAllListeners(): Promise<void>;
 }
