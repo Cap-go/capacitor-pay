@@ -1,9 +1,19 @@
 # @capgo/capacitor-pay
- <a href="https://capgo.app/"><img src='https://raw.githubusercontent.com/Cap-go/capgo/main/assets/capgo_banner.png' alt='Capgo - Instant updates for capacitor'/></a>
+
+<a href="https://capgo.app/">
+  <img
+    src="https://raw.githubusercontent.com/Cap-go/capgo/main/assets/capgo_banner.png"
+    alt="Capgo - Instant updates for capacitor"
+  />
+</a>
 
 <div align="center">
-  <h2><a href="https://capgo.app/?ref=plugin_pay"> ➡️ Get Instant updates for your App with Capgo</a></h2>
-  <h2><a href="https://capgo.app/consulting/?ref=plugin_pay"> Missing a feature? We’ll build the plugin for you 💪</a></h2>
+  <h2>
+    <a href="https://capgo.app/?ref=plugin_pay"> ➡️ Get Instant updates for your App with Capgo</a>
+  </h2>
+  <h2>
+    <a href="https://capgo.app/consulting/?ref=plugin_pay"> Missing a feature? We'll build the plugin for you 💪</a>
+  </h2>
 </div>
 
 Capacitor plugin to trigger native payments with Apple Pay and Google Pay using a unified JavaScript API.
@@ -87,7 +97,22 @@ if (availability.platform === 'ios') {
   });
   console.log(result.apple?.paymentData);
 } else if (availability.platform === 'android') {
-  const result = await Pay.requestPayment({
+  await addListener('onAuthorized', (result) => {
+    console.log('Payment authorized:', result.google.paymentData);
+    // Process the payment token on your backend server here.
+  });
+
+  await addListener('onCanceled', (result) => {
+    console.log('Payment canceled by user', result);
+    // Handle the cancellation gracefully in your UI.
+  });
+
+  await addListener('onError', (error) => {
+    console.error('Payment error:', error);
+    // Handle the error gracefully in your UI.
+  });
+
+  await Pay.requestPayment({
     google: {
       environment: 'test',
       paymentDataRequest: {
@@ -126,7 +151,6 @@ if (availability.platform === 'ios') {
       },
     },
   });
-  console.log(result.google?.paymentData);
 }
 ```
 
@@ -137,6 +161,10 @@ if (availability.platform === 'ios') {
 * [`isPayAvailable(...)`](#ispayavailable)
 * [`requestPayment(...)`](#requestpayment)
 * [`getPluginVersion()`](#getpluginversion)
+* [`addListener('onAuthorized', ...)`](#addlisteneronauthorized-)
+* [`addListener('onCanceled', ...)`](#addlisteneroncanceled-)
+* [`addListener('onError', ...)`](#addlisteneronerror-)
+* [`removeAllListeners()`](#removealllisteners)
 * [Interfaces](#interfaces)
 * [Type Aliases](#type-aliases)
 
@@ -194,6 +222,77 @@ Get the native Capacitor plugin version
 --------------------
 
 
+### addListener('onAuthorized', ...)
+
+```typescript
+addListener(eventName: 'onAuthorized', listenerFunc: (result: { platform: PayPaymentResult['platform']; google: GooglePayPaymentResult; }) => void) => Promise<PluginListenerHandle>
+```
+
+Add event listener for Google Pay authorized payments.
+
+Works only on Google Pay.
+
+| Param              | Type                                                                                                                                      |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| **`eventName`**    | <code>'onAuthorized'</code>                                                                                                               |
+| **`listenerFunc`** | <code>(result: { platform: 'ios' \| 'android'; google: <a href="#googlepaypaymentresult">GooglePayPaymentResult</a>; }) =&gt; void</code> |
+
+**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
+
+--------------------
+
+
+### addListener('onCanceled', ...)
+
+```typescript
+addListener(eventName: 'onCanceled', listenerFunc: (result: { platform: PayPaymentResult['platform']; message: string; statusCode: 'CANCELED'; }) => void) => Promise<PluginListenerHandle>
+```
+
+Add event listener for Google Pay canceled payments.
+
+Works only on Google Pay.
+
+| Param              | Type                                                                                                         |
+| ------------------ | ------------------------------------------------------------------------------------------------------------ |
+| **`eventName`**    | <code>'onCanceled'</code>                                                                                    |
+| **`listenerFunc`** | <code>(result: { platform: 'ios' \| 'android'; message: string; statusCode: 'CANCELED'; }) =&gt; void</code> |
+
+**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
+
+--------------------
+
+
+### addListener('onError', ...)
+
+```typescript
+addListener(eventName: 'onError', listenerFunc: (error: { platform: PayPaymentResult['platform']; message: string; statusCode: 'ERROR'; }) => void) => Promise<PluginListenerHandle>
+```
+
+Add event listener for Google Pay errors.
+
+Works only on Google Pay.
+
+| Param              | Type                                                                                                     |
+| ------------------ | -------------------------------------------------------------------------------------------------------- |
+| **`eventName`**    | <code>'onError'</code>                                                                                   |
+| **`listenerFunc`** | <code>(error: { platform: 'ios' \| 'android'; message: string; statusCode: 'ERROR'; }) =&gt; void</code> |
+
+**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
+
+--------------------
+
+
+### removeAllListeners()
+
+```typescript
+removeAllListeners() => Promise<void>
+```
+
+Remove all the listeners that are attached to this plugin.
+
+--------------------
+
+
 ### Interfaces
 
 
@@ -217,9 +316,10 @@ Get the native Capacitor plugin version
 
 #### GooglePayAvailabilityResult
 
-| Prop          | Type                 | Description                                                                    |
-| ------------- | -------------------- | ------------------------------------------------------------------------------ |
-| **`isReady`** | <code>boolean</code> | Indicates whether the Google Pay API is available for the supplied parameters. |
+| Prop                       | Type                 | Description                                                                                                                                                                                                                                                                                                                           |
+| -------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`isReady`**              | <code>boolean</code> | Whether the user is able to provide payment information through the Google Pay payment sheet.                                                                                                                                                                                                                                         |
+| **`paymentMethodPresent`** | <code>boolean</code> | The current user's ability to pay with one or more of the payment methods specified in `IsReadyToPayRequest.allowedPaymentMethods`. This property only exists if `IsReadyToPayRequest.existingPaymentMethodRequired` was set to `true`. The property value will always be `true` if the request is configured for a test environment. |
 
 
 #### PayAvailabilityOptions
@@ -242,7 +342,7 @@ Get the native Capacitor plugin version
 | Prop                      | Type                                                                  | Description                                                                                                                                  |
 | ------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | **`environment`**         | <code><a href="#googlepayenvironment">GooglePayEnvironment</a></code> | Environment used to construct the Google Payments client. Defaults to `'test'`.                                                              |
-| **`isReadyToPayRequest`** | <code><a href="#record">Record</a>&lt;string, unknown&gt;</code>      | Raw `IsReadyToPayRequest` JSON as defined by the Google Pay API. Supply the card networks and auth methods you intend to support at runtime. |
+| **`isReadyToPayRequest`** | <code>google.payments.api.IsReadyToPayRequest</code>                  | Raw `IsReadyToPayRequest` JSON as defined by the Google Pay API. Supply the card networks and auth methods you intend to support at runtime. |
 
 
 #### PayPaymentResult
@@ -251,7 +351,7 @@ Get the native Capacitor plugin version
 | -------------- | ------------------------------------------------------------------------------------------------ |
 | **`platform`** | <code><a href="#exclude">Exclude</a>&lt;<a href="#payplatform">PayPlatform</a>, 'web'&gt;</code> |
 | **`apple`**    | <code><a href="#applepaypaymentresult">ApplePayPaymentResult</a></code>                          |
-| **`google`**   | <code><a href="#googlepaypaymentresult">GooglePayPaymentResult</a></code>                        |
+| **`google`**   | <code>void</code>                                                                                |
 
 
 #### ApplePayPaymentResult
@@ -274,13 +374,6 @@ Get the native Capacitor plugin version
 | **`emailAddress`**  | <code>string</code>                                                                                                                                                                    |
 | **`phoneNumber`**   | <code>string</code>                                                                                                                                                                    |
 | **`postalAddress`** | <code>{ street?: string; city?: string; state?: string; postalCode?: string; country?: string; isoCountryCode?: string; subAdministrativeArea?: string; subLocality?: string; }</code> |
-
-
-#### GooglePayPaymentResult
-
-| Prop              | Type                                                             | Description                          |
-| ----------------- | ---------------------------------------------------------------- | ------------------------------------ |
-| **`paymentData`** | <code><a href="#record">Record</a>&lt;string, unknown&gt;</code> | Payment data returned by Google Pay. |
 
 
 #### PayPaymentOptions
@@ -322,7 +415,21 @@ Get the native Capacitor plugin version
 | Prop                     | Type                                                                  | Description                                                                                                                              |
 | ------------------------ | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | **`environment`**        | <code><a href="#googlepayenvironment">GooglePayEnvironment</a></code> | Environment used to construct the Google Payments client. Defaults to `'test'`.                                                          |
-| **`paymentDataRequest`** | <code><a href="#record">Record</a>&lt;string, unknown&gt;</code>      | Raw `PaymentDataRequest` JSON as defined by the Google Pay API. Provide transaction details, merchant info, and tokenization parameters. |
+| **`paymentDataRequest`** | <code>google.payments.api.PaymentDataRequest</code>                   | Raw `PaymentDataRequest` JSON as defined by the Google Pay API. Provide transaction details, merchant info, and tokenization parameters. |
+
+
+#### PluginListenerHandle
+
+| Prop         | Type                                      |
+| ------------ | ----------------------------------------- |
+| **`remove`** | <code>() =&gt; Promise&lt;void&gt;</code> |
+
+
+#### GooglePayPaymentResult
+
+| Prop              | Type                                         | Description                          |
+| ----------------- | -------------------------------------------- | ------------------------------------ |
+| **`paymentData`** | <code>google.payments.api.PaymentData</code> | Payment data returned by Google Pay. |
 
 
 ### Type Aliases
@@ -341,13 +448,6 @@ Get the native Capacitor plugin version
 #### GooglePayEnvironment
 
 <code>'test' | 'production'</code>
-
-
-#### Record
-
-Construct a type with a set of properties K of type T
-
-<code>{ [P in K]: T; }</code>
 
 
 #### Exclude
