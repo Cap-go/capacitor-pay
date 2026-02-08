@@ -271,21 +271,47 @@ export interface GooglePayTransactionInfo {
  * Typed helper for the Google Pay `IsReadyToPayRequest` JSON.
  * The native Android implementation still accepts arbitrary JSON (forward compatible).
  */
-export type GooglePayIsReadyToPayRequest = Record<string, unknown> & {
+export interface GooglePayIsReadyToPayRequest {
+  /**
+   * The list of payment methods you want to check for readiness.
+   */
   allowedPaymentMethods?: GooglePayAllowedPaymentMethod[];
-};
+  /**
+   * Forward-compatible escape hatch for additional fields supported by Google Pay.
+   */
+  [key: string]: unknown;
+}
 
 /**
  * Typed helper for the Google Pay `PaymentDataRequest` JSON.
  * The native Android implementation still accepts arbitrary JSON (forward compatible).
  */
-export type GooglePayPaymentDataRequest = Record<string, unknown> & {
+export interface GooglePayPaymentDataRequest {
+  /**
+   * Google Pay API version, typically `2`.
+   */
   apiVersion?: number;
+  /**
+   * Google Pay API minor version, typically `0`.
+   */
   apiVersionMinor?: number;
+  /**
+   * Allowed payment method configurations.
+   */
   allowedPaymentMethods?: GooglePayAllowedPaymentMethod[];
+  /**
+   * Merchant information displayed in the Google Pay sheet.
+   */
   merchantInfo?: GooglePayMerchantInfo;
+  /**
+   * Transaction details (amount, currency, etc).
+   */
   transactionInfo?: GooglePayTransactionInfo;
-};
+  /**
+   * Forward-compatible escape hatch for additional fields supported by Google Pay.
+   */
+  [key: string]: unknown;
+}
 
 export interface GooglePayAvailabilityOptions {
   /**

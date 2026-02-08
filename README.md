@@ -326,6 +326,16 @@ Get the native Capacitor plugin version
 | **`isReadyToPayRequest`** | <code><a href="#googlepayisreadytopayrequest">GooglePayIsReadyToPayRequest</a></code> | Raw `IsReadyToPayRequest` JSON as defined by the Google Pay API. Supply the card networks and auth methods you intend to support at runtime. |
 
 
+#### GooglePayIsReadyToPayRequest
+
+Typed helper for the Google Pay `IsReadyToPayRequest` JSON.
+The native Android implementation still accepts arbitrary JSON (forward compatible).
+
+| Prop                        | Type                                         | Description                                                  |
+| --------------------------- | -------------------------------------------- | ------------------------------------------------------------ |
+| **`allowedPaymentMethods`** | <code>GooglePayAllowedPaymentMethod[]</code> | The list of payment methods you want to check for readiness. |
+
+
 #### GooglePayAllowedPaymentMethod
 
 | Prop                            | Type                                                                                                  |
@@ -464,6 +474,20 @@ Get the native Capacitor plugin version
 | **`paymentDataRequest`** | <code><a href="#googlepaypaymentdatarequest">GooglePayPaymentDataRequest</a></code> | Raw `PaymentDataRequest` JSON as defined by the Google Pay API. Provide transaction details, merchant info, and tokenization parameters. |
 
 
+#### GooglePayPaymentDataRequest
+
+Typed helper for the Google Pay `PaymentDataRequest` JSON.
+The native Android implementation still accepts arbitrary JSON (forward compatible).
+
+| Prop                        | Type                                                                          | Description                                             |
+| --------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------- |
+| **`apiVersion`**            | <code>number</code>                                                           | Google Pay API version, typically `2`.                  |
+| **`apiVersionMinor`**       | <code>number</code>                                                           | Google Pay API minor version, typically `0`.            |
+| **`allowedPaymentMethods`** | <code>GooglePayAllowedPaymentMethod[]</code>                                  | Allowed payment method configurations.                  |
+| **`merchantInfo`**          | <code><a href="#googlepaymerchantinfo">GooglePayMerchantInfo</a></code>       | Merchant information displayed in the Google Pay sheet. |
+| **`transactionInfo`**       | <code><a href="#googlepaytransactioninfo">GooglePayTransactionInfo</a></code> | Transaction details (amount, currency, etc).            |
+
+
 #### GooglePayMerchantInfo
 
 | Prop               | Type                |
@@ -498,14 +522,6 @@ Get the native Capacitor plugin version
 #### GooglePayEnvironment
 
 <code>'test' | 'production'</code>
-
-
-#### GooglePayIsReadyToPayRequest
-
-Typed helper for the Google Pay `IsReadyToPayRequest` JSON.
-The native Android implementation still accepts arbitrary JSON (forward compatible).
-
-<code><a href="#record">Record</a>&lt;string, unknown&gt; & { allowedPaymentMethods?: GooglePayAllowedPaymentMethod[]; }</code>
 
 
 #### Record
@@ -555,14 +571,6 @@ Construct a type with a set of properties K of type T
 #### ApplePayRecurringPaymentIntervalUnit
 
 <code>'day' | 'week' | 'month' | 'year'</code>
-
-
-#### GooglePayPaymentDataRequest
-
-Typed helper for the Google Pay `PaymentDataRequest` JSON.
-The native Android implementation still accepts arbitrary JSON (forward compatible).
-
-<code><a href="#record">Record</a>&lt;string, unknown&gt; & { apiVersion?: number; apiVersionMinor?: number; allowedPaymentMethods?: GooglePayAllowedPaymentMethod[]; merchantInfo?: <a href="#googlepaymerchantinfo">GooglePayMerchantInfo</a>; transactionInfo?: <a href="#googlepaytransactioninfo">GooglePayTransactionInfo</a>; }</code>
 
 
 #### GooglePayTotalPriceStatus
