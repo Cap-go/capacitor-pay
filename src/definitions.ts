@@ -215,6 +215,78 @@ export interface ApplePayPaymentResult {
 
 export type GooglePayEnvironment = 'test' | 'production';
 
+export type GooglePayCardNetwork =
+  | 'AMEX'
+  | 'DISCOVER'
+  | 'JCB'
+  | 'MASTERCARD'
+  | 'VISA'
+  // Keep this open-ended so users can pass new/region-specific networks without waiting for a release.
+  | (string & Record<never, never>);
+
+export type GooglePayAuthMethod =
+  | 'PAN_ONLY'
+  | 'CRYPTOGRAM_3DS'
+  // Keep this open-ended for forward compatibility.
+  | (string & Record<never, never>);
+
+export type GooglePayTotalPriceStatus = 'NOT_CURRENTLY_KNOWN' | 'ESTIMATED' | 'FINAL' | (string & Record<never, never>);
+
+export interface GooglePayBillingAddressParameters {
+  format?: 'MIN' | 'FULL' | (string & Record<never, never>);
+  phoneNumberRequired?: boolean;
+}
+
+export interface GooglePayCardPaymentMethodParameters {
+  allowedAuthMethods?: GooglePayAuthMethod[];
+  allowedCardNetworks?: GooglePayCardNetwork[];
+  billingAddressRequired?: boolean;
+  billingAddressParameters?: GooglePayBillingAddressParameters;
+}
+
+export interface GooglePayTokenizationSpecification {
+  type?: 'PAYMENT_GATEWAY' | 'DIRECT' | (string & Record<never, never>);
+  parameters?: Record<string, string>;
+}
+
+export interface GooglePayAllowedPaymentMethod {
+  type?: 'CARD' | (string & Record<never, never>);
+  parameters?: GooglePayCardPaymentMethodParameters;
+  tokenizationSpecification?: GooglePayTokenizationSpecification;
+}
+
+export interface GooglePayMerchantInfo {
+  merchantId?: string;
+  merchantName?: string;
+}
+
+export interface GooglePayTransactionInfo {
+  totalPriceStatus?: GooglePayTotalPriceStatus;
+  totalPrice?: string;
+  currencyCode?: string;
+  countryCode?: string;
+}
+
+/**
+ * Typed helper for the Google Pay `IsReadyToPayRequest` JSON.
+ * The native Android implementation still accepts arbitrary JSON (forward compatible).
+ */
+export type GooglePayIsReadyToPayRequest = Record<string, unknown> & {
+  allowedPaymentMethods?: GooglePayAllowedPaymentMethod[];
+};
+
+/**
+ * Typed helper for the Google Pay `PaymentDataRequest` JSON.
+ * The native Android implementation still accepts arbitrary JSON (forward compatible).
+ */
+export type GooglePayPaymentDataRequest = Record<string, unknown> & {
+  apiVersion?: number;
+  apiVersionMinor?: number;
+  allowedPaymentMethods?: GooglePayAllowedPaymentMethod[];
+  merchantInfo?: GooglePayMerchantInfo;
+  transactionInfo?: GooglePayTransactionInfo;
+};
+
 export interface GooglePayAvailabilityOptions {
   /**
    * Environment used to construct the Google Payments client. Defaults to `'test'`.
@@ -224,7 +296,7 @@ export interface GooglePayAvailabilityOptions {
    * Raw `IsReadyToPayRequest` JSON as defined by the Google Pay API.
    * Supply the card networks and auth methods you intend to support at runtime.
    */
-  isReadyToPayRequest?: Record<string, unknown>;
+  isReadyToPayRequest?: GooglePayIsReadyToPayRequest;
 }
 
 export interface GooglePayAvailabilityResult {
@@ -243,7 +315,7 @@ export interface GooglePayPaymentOptions {
    * Raw `PaymentDataRequest` JSON as defined by the Google Pay API.
    * Provide transaction details, merchant info, and tokenization parameters.
    */
-  paymentDataRequest: Record<string, unknown>;
+  paymentDataRequest: GooglePayPaymentDataRequest;
 }
 
 export interface GooglePayPaymentResult {

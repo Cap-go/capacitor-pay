@@ -26,8 +26,8 @@ The most complete doc is available here: https://capgo.app/docs/plugins/pay/
 ## Install
 
 ```bash
-npm install @capgo/capacitor-pay
-npx cap sync
+bun add @capgo/capacitor-pay
+bunx cap sync
 ```
 
 ## Platform setup
@@ -47,7 +47,7 @@ import { Pay } from '@capgo/capacitor-pay';
 // Check availability on the current platform.
 const availability = await Pay.isPayAvailable({
   apple: {
-    supportedNetworks: ['visa', 'masterCard', 'amex'],
+    supportedNetworks: ['Visa', 'MasterCard', 'AmEx'],
   },
   google: {
     // Optional: falls back to a basic CARD request if omitted.
@@ -76,7 +76,7 @@ if (availability.platform === 'ios') {
       merchantIdentifier: 'merchant.com.example.app',
       countryCode: 'US',
       currencyCode: 'USD',
-      supportedNetworks: ['visa', 'masterCard'],
+      supportedNetworks: ['Visa', 'MasterCard'],
       paymentSummaryItems: [
         { label: 'Example Product', amount: '19.99' },
         { label: 'Tax', amount: '1.60' },
@@ -128,6 +128,87 @@ if (availability.platform === 'ios') {
   });
   console.log(result.google?.paymentData);
 }
+```
+
+## Recurring payments
+
+Apple Pay has first-class support via `recurringPaymentRequest` (iOS 16+):
+
+```ts
+import { Pay } from '@capgo/capacitor-pay';
+
+await Pay.requestPayment({
+  apple: {
+    merchantIdentifier: 'merchant.com.example.app',
+    countryCode: 'US',
+    currencyCode: 'USD',
+    supportedNetworks: ['Visa', 'MasterCard'],
+    paymentSummaryItems: [
+      { label: 'Pro Plan', amount: '9.99' },
+      { label: 'Example Store', amount: '9.99' },
+    ],
+    recurringPaymentRequest: {
+      paymentDescription: 'Pro Plan Subscription',
+      managementURL: 'https://example.com/account/subscription',
+      regularBilling: {
+        label: 'Pro Plan',
+        amount: '9.99',
+        intervalUnit: 'month',
+        intervalCount: 1,
+        startDate: Date.now(),
+      },
+    },
+  },
+});
+```
+
+Google Pay does not have a dedicated "recurring request" object in `PaymentDataRequest`. For subscriptions you typically:
+
+1. Collect a token once with a normal `paymentDataRequest`.
+2. Store it server-side and create recurring charges with your PSP/gateway (Stripe/Adyen/Braintree/etc).
+
+```ts
+import { Pay, type GooglePayPaymentDataRequest } from '@capgo/capacitor-pay';
+
+const paymentDataRequest: GooglePayPaymentDataRequest = {
+  apiVersion: 2,
+  apiVersionMinor: 0,
+  allowedPaymentMethods: [
+    {
+      type: 'CARD',
+      parameters: {
+        allowedAuthMethods: ['PAN_ONLY', 'CRYPTOGRAM_3DS'],
+        allowedCardNetworks: ['AMEX', 'DISCOVER', 'MASTERCARD', 'VISA'],
+      },
+      tokenizationSpecification: {
+        type: 'PAYMENT_GATEWAY',
+        parameters: {
+          gateway: 'example',
+          gatewayMerchantId: 'exampleGatewayMerchantId',
+        },
+      },
+    },
+  ],
+  merchantInfo: {
+    merchantId: '01234567890123456789',
+    merchantName: 'Example Merchant',
+  },
+  transactionInfo: {
+    totalPriceStatus: 'FINAL',
+    totalPrice: '9.99',
+    currencyCode: 'USD',
+    countryCode: 'US',
+  },
+};
+
+const result = await Pay.requestPayment({
+  google: {
+    environment: 'test',
+    paymentDataRequest,
+  },
+});
+
+// Send `result.google?.paymentData` to your backend and use your PSP to start the subscription.
 ```
 
 ## API
@@ -239,10 +320,45 @@ Get the native Capacitor plugin version
 
 #### GooglePayAvailabilityOptions
 
-| Prop                      | Type                                                                  | Description                                                                                                                                  |
-| ------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`environment`**         | <code><a href="#googlepayenvironment">GooglePayEnvironment</a></code> | Environment used to construct the Google Payments client. Defaults to `'test'`.                                                              |
-| **`isReadyToPayRequest`** | <code><a href="#record">Record</a>&lt;string, unknown&gt;</code>      | Raw `IsReadyToPayRequest` JSON as defined by the Google Pay API. Supply the card networks and auth methods you intend to support at runtime. |
+| Prop                      | Type                                                                                  | Description                                                                                                                                  |
+| ------------------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`environment`**         | <code><a href="#googlepayenvironment">GooglePayEnvironment</a></code>                 | Environment used to construct the Google Payments client. Defaults to `'test'`.                                                              |
+| **`isReadyToPayRequest`** | <code><a href="#googlepayisreadytopayrequest">GooglePayIsReadyToPayRequest</a></code> | Raw `IsReadyToPayRequest` JSON as defined by the Google Pay API. Supply the card networks and auth methods you intend to support at runtime. |
+
+
+#### GooglePayAllowedPaymentMethod
+
+| Prop                            | Type                                                                                                  |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| **`type`**                      | <code>(string & <a href="#record">Record</a>&lt;never, never&gt;) \| 'CARD'</code>                    |
+| **`parameters`**                | <code><a href="#googlepaycardpaymentmethodparameters">GooglePayCardPaymentMethodParameters</a></code> |
+| **`tokenizationSpecification`** | <code><a href="#googlepaytokenizationspecification">GooglePayTokenizationSpecification</a></code>     |
+
+
+#### GooglePayCardPaymentMethodParameters
+
+| Prop                           | Type                                                                                            |
+| ------------------------------ | ----------------------------------------------------------------------------------------------- |
+| **`allowedAuthMethods`**       | <code>GooglePayAuthMethod[]</code>                                                              |
+| **`allowedCardNetworks`**      | <code>GooglePayCardNetwork[]</code>                                                             |
+| **`billingAddressRequired`**   | <code>boolean</code>                                                                            |
+| **`billingAddressParameters`** | <code><a href="#googlepaybillingaddressparameters">GooglePayBillingAddressParameters</a></code> |
+
+
+#### GooglePayBillingAddressParameters
+
+| Prop                      | Type                                                                                        |
+| ------------------------- | ------------------------------------------------------------------------------------------- |
+| **`format`**              | <code>'MIN' \| 'FULL' \| (string & <a href="#record">Record</a>&lt;never, never&gt;)</code> |
+| **`phoneNumberRequired`** | <code>boolean</code>                                                                        |
+
+
+#### GooglePayTokenizationSpecification
+
+| Prop             | Type                                                                                                      |
+| ---------------- | --------------------------------------------------------------------------------------------------------- |
+| **`type`**       | <code>(string & <a href="#record">Record</a>&lt;never, never&gt;) \| 'PAYMENT_GATEWAY' \| 'DIRECT'</code> |
+| **`parameters`** | <code><a href="#record">Record</a>&lt;string, string&gt;</code>                                           |
 
 
 #### PayPaymentResult
@@ -342,10 +458,28 @@ Get the native Capacitor plugin version
 
 #### GooglePayPaymentOptions
 
-| Prop                     | Type                                                                  | Description                                                                                                                              |
-| ------------------------ | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **`environment`**        | <code><a href="#googlepayenvironment">GooglePayEnvironment</a></code> | Environment used to construct the Google Payments client. Defaults to `'test'`.                                                          |
-| **`paymentDataRequest`** | <code><a href="#record">Record</a>&lt;string, unknown&gt;</code>      | Raw `PaymentDataRequest` JSON as defined by the Google Pay API. Provide transaction details, merchant info, and tokenization parameters. |
+| Prop                     | Type                                                                                | Description                                                                                                                              |
+| ------------------------ | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **`environment`**        | <code><a href="#googlepayenvironment">GooglePayEnvironment</a></code>               | Environment used to construct the Google Payments client. Defaults to `'test'`.                                                          |
+| **`paymentDataRequest`** | <code><a href="#googlepaypaymentdatarequest">GooglePayPaymentDataRequest</a></code> | Raw `PaymentDataRequest` JSON as defined by the Google Pay API. Provide transaction details, merchant info, and tokenization parameters. |
+
+
+#### GooglePayMerchantInfo
+
+| Prop               | Type                |
+| ------------------ | ------------------- |
+| **`merchantId`**   | <code>string</code> |
+| **`merchantName`** | <code>string</code> |
+
+
+#### GooglePayTransactionInfo
+
+| Prop                   | Type                                                                            |
+| ---------------------- | ------------------------------------------------------------------------------- |
+| **`totalPriceStatus`** | <code><a href="#googlepaytotalpricestatus">GooglePayTotalPriceStatus</a></code> |
+| **`totalPrice`**       | <code>string</code>                                                             |
+| **`currencyCode`**     | <code>string</code>                                                             |
+| **`countryCode`**      | <code>string</code>                                                             |
 
 
 ### Type Aliases
@@ -366,11 +500,29 @@ Get the native Capacitor plugin version
 <code>'test' | 'production'</code>
 
 
+#### GooglePayIsReadyToPayRequest
+
+Typed helper for the Google Pay `IsReadyToPayRequest` JSON.
+The native Android implementation still accepts arbitrary JSON (forward compatible).
+
+<code><a href="#record">Record</a>&lt;string, unknown&gt; & { allowedPaymentMethods?: GooglePayAllowedPaymentMethod[]; }</code>
+
+
 #### Record
 
 Construct a type with a set of properties K of type T
 
 <code>{ [P in K]: T; }</code>
+
+
+#### GooglePayAuthMethod
+
+<code>'PAN_ONLY' | 'CRYPTOGRAM_3DS' | (string & <a href="#record">Record</a>&lt;never, never&gt;)</code>
+
+
+#### GooglePayCardNetwork
+
+<code>'AMEX' | 'DISCOVER' | 'JCB' | 'MASTERCARD' | 'VISA' | (string & <a href="#record">Record</a>&lt;never, never&gt;)</code>
 
 
 #### Exclude
@@ -403,5 +555,18 @@ Construct a type with a set of properties K of type T
 #### ApplePayRecurringPaymentIntervalUnit
 
 <code>'day' | 'week' | 'month' | 'year'</code>
+
+
+#### GooglePayPaymentDataRequest
+
+Typed helper for the Google Pay `PaymentDataRequest` JSON.
+The native Android implementation still accepts arbitrary JSON (forward compatible).
+
+<code><a href="#record">Record</a>&lt;string, unknown&gt; & { apiVersion?: number; apiVersionMinor?: number; allowedPaymentMethods?: GooglePayAllowedPaymentMethod[]; merchantInfo?: <a href="#googlepaymerchantinfo">GooglePayMerchantInfo</a>; transactionInfo?: <a href="#googlepaytransactioninfo">GooglePayTransactionInfo</a>; }</code>
+
+
+#### GooglePayTotalPriceStatus
+
+<code>'NOT_CURRENTLY_KNOWN' | 'ESTIMATED' | 'FINAL' | (string & <a href="#record">Record</a>&lt;never, never&gt;)</code>
 
 </docgen-api>
