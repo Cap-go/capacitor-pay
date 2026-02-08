@@ -49,6 +49,54 @@ export interface ApplePaySummaryItem {
   type?: ApplePaySummaryItemType;
 }
 
+export type ApplePayRecurringPaymentIntervalUnit = 'day' | 'week' | 'month' | 'year';
+
+export interface ApplePayRecurringPaymentSummaryItem extends ApplePaySummaryItem {
+  /**
+   * Unit of time between recurring payments.
+   */
+  intervalUnit: ApplePayRecurringPaymentIntervalUnit;
+  /**
+   * Number of `intervalUnit` units between recurring payments (for example `1` month, `2` weeks).
+   */
+  intervalCount: number;
+  /**
+   * Start date of the recurring period, expressed as milliseconds since Unix epoch.
+   */
+  startDate?: number;
+  /**
+   * End date of the recurring period, expressed as milliseconds since Unix epoch.
+   */
+  endDate?: number;
+}
+
+export interface ApplePayRecurringPaymentRequest {
+  /**
+   * A description for the recurring payment shown in the Apple Pay sheet.
+   */
+  paymentDescription: string;
+  /**
+   * The recurring billing item (for example your subscription).
+   */
+  regularBilling: ApplePayRecurringPaymentSummaryItem;
+  /**
+   * URL where the user can manage the recurring payment (cancel, update, etc).
+   */
+  managementURL: string;
+  /**
+   * Optional billing agreement text shown to the user.
+   */
+  billingAgreement?: string;
+  /**
+   * Optional URL where Apple can send token update notifications.
+   */
+  tokenNotificationURL?: string;
+  /**
+   * Optional trial billing item (for example a free trial period).
+   */
+  trialBilling?: ApplePayRecurringPaymentSummaryItem;
+}
+
 export interface ApplePayAvailabilityOptions {
   /**
    * Optional list of payment networks you intend to use.
@@ -113,6 +161,11 @@ export interface ApplePayPaymentOptions {
    * Optional opaque application data passed back in the payment token.
    */
   applicationData?: string;
+
+  /**
+   * Recurring payment configuration (iOS 16+).
+   */
+  recurringPaymentRequest?: ApplePayRecurringPaymentRequest;
 }
 
 export interface ApplePayContact {

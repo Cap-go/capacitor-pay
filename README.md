@@ -293,19 +293,20 @@ Get the native Capacitor plugin version
 
 #### ApplePayPaymentOptions
 
-| Prop                                | Type                                                                  | Description                                                        |
-| ----------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| **`merchantIdentifier`**            | <code>string</code>                                                   | Merchant identifier created in the Apple Developer portal.         |
-| **`countryCode`**                   | <code>string</code>                                                   | Two-letter ISO 3166 country code.                                  |
-| **`currencyCode`**                  | <code>string</code>                                                   | Three-letter ISO 4217 currency code.                               |
-| **`paymentSummaryItems`**           | <code>ApplePaySummaryItem[]</code>                                    | Payment summary items displayed in the Apple Pay sheet.            |
-| **`supportedNetworks`**             | <code>ApplePayNetwork[]</code>                                        | Card networks to support.                                          |
-| **`merchantCapabilities`**          | <code>ApplePayMerchantCapability[]</code>                             | Merchant payment capabilities. Defaults to ['3DS'] when omitted.   |
-| **`requiredShippingContactFields`** | <code>ApplePayContactField[]</code>                                   | Contact fields that must be supplied for shipping.                 |
-| **`requiredBillingContactFields`**  | <code>ApplePayContactField[]</code>                                   | Contact fields that must be supplied for billing.                  |
-| **`shippingType`**                  | <code><a href="#applepayshippingtype">ApplePayShippingType</a></code> | Controls the shipping flow presented to the user.                  |
-| **`supportedCountries`**            | <code>string[]</code>                                                 | Optional ISO 3166 country codes where the merchant is supported.   |
-| **`applicationData`**               | <code>string</code>                                                   | Optional opaque application data passed back in the payment token. |
+| Prop                                | Type                                                                                        | Description                                                        |
+| ----------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| **`merchantIdentifier`**            | <code>string</code>                                                                         | Merchant identifier created in the Apple Developer portal.         |
+| **`countryCode`**                   | <code>string</code>                                                                         | Two-letter ISO 3166 country code.                                  |
+| **`currencyCode`**                  | <code>string</code>                                                                         | Three-letter ISO 4217 currency code.                               |
+| **`paymentSummaryItems`**           | <code>ApplePaySummaryItem[]</code>                                                          | Payment summary items displayed in the Apple Pay sheet.            |
+| **`supportedNetworks`**             | <code>ApplePayNetwork[]</code>                                                              | Card networks to support.                                          |
+| **`merchantCapabilities`**          | <code>ApplePayMerchantCapability[]</code>                                                   | Merchant payment capabilities. Defaults to ['3DS'] when omitted.   |
+| **`requiredShippingContactFields`** | <code>ApplePayContactField[]</code>                                                         | Contact fields that must be supplied for shipping.                 |
+| **`requiredBillingContactFields`**  | <code>ApplePayContactField[]</code>                                                         | Contact fields that must be supplied for billing.                  |
+| **`shippingType`**                  | <code><a href="#applepayshippingtype">ApplePayShippingType</a></code>                       | Controls the shipping flow presented to the user.                  |
+| **`supportedCountries`**            | <code>string[]</code>                                                                       | Optional ISO 3166 country codes where the merchant is supported.   |
+| **`applicationData`**               | <code>string</code>                                                                         | Optional opaque application data passed back in the payment token. |
+| **`recurringPaymentRequest`**       | <code><a href="#applepayrecurringpaymentrequest">ApplePayRecurringPaymentRequest</a></code> | Recurring payment configuration (iOS 16+).                         |
 
 
 #### ApplePaySummaryItem
@@ -315,6 +316,28 @@ Get the native Capacitor plugin version
 | **`label`**  | <code>string</code>                                                         |
 | **`amount`** | <code>string</code>                                                         |
 | **`type`**   | <code><a href="#applepaysummaryitemtype">ApplePaySummaryItemType</a></code> |
+
+
+#### ApplePayRecurringPaymentRequest
+
+| Prop                       | Type                                                                                                | Description                                                                |
+| -------------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| **`paymentDescription`**   | <code>string</code>                                                                                 | A description for the recurring payment shown in the Apple Pay sheet.      |
+| **`regularBilling`**       | <code><a href="#applepayrecurringpaymentsummaryitem">ApplePayRecurringPaymentSummaryItem</a></code> | The recurring billing item (for example your subscription).                |
+| **`managementURL`**        | <code>string</code>                                                                                 | URL where the user can manage the recurring payment (cancel, update, etc). |
+| **`billingAgreement`**     | <code>string</code>                                                                                 | Optional billing agreement text shown to the user.                         |
+| **`tokenNotificationURL`** | <code>string</code>                                                                                 | Optional URL where Apple can send token update notifications.              |
+| **`trialBilling`**         | <code><a href="#applepayrecurringpaymentsummaryitem">ApplePayRecurringPaymentSummaryItem</a></code> | Optional trial billing item (for example a free trial period).             |
+
+
+#### ApplePayRecurringPaymentSummaryItem
+
+| Prop                | Type                                                                                                  | Description                                                                                   |
+| ------------------- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| **`intervalUnit`**  | <code><a href="#applepayrecurringpaymentintervalunit">ApplePayRecurringPaymentIntervalUnit</a></code> | Unit of time between recurring payments.                                                      |
+| **`intervalCount`** | <code>number</code>                                                                                   | Number of `intervalUnit` units between recurring payments (for example `1` month, `2` weeks). |
+| **`startDate`**     | <code>number</code>                                                                                   | Start date of the recurring period, expressed as milliseconds since Unix epoch.               |
+| **`endDate`**       | <code>number</code>                                                                                   | End date of the recurring period, expressed as milliseconds since Unix epoch.                 |
 
 
 #### GooglePayPaymentOptions
@@ -375,5 +398,10 @@ Construct a type with a set of properties K of type T
 #### ApplePayShippingType
 
 <code>'shipping' | 'delivery' | 'servicePickup' | 'storePickup'</code>
+
+
+#### ApplePayRecurringPaymentIntervalUnit
+
+<code>'day' | 'week' | 'month' | 'year'</code>
 
 </docgen-api>
