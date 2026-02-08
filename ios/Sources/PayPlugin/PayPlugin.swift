@@ -389,9 +389,33 @@ public class PayPlugin: CAPPlugin, CAPBridgedPlugin, PKPaymentAuthorizationContr
 
         return networkStrings.compactMap { element in
             if let stringValue = element as? String {
-                return PKPaymentNetwork(rawValue: stringValue)
+                return PKPaymentNetwork(rawValue: normalizePaymentNetwork(stringValue))
             }
             return nil
+        }
+    }
+
+    private func normalizePaymentNetwork(_ value: String) -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        let key = trimmed.lowercased()
+
+        // Accept common Apple Pay on the Web identifiers too.
+        // PassKit network raw values are case-sensitive (for example "Visa", "MasterCard", "AmEx").
+        switch key {
+        case "visa":
+            return PKPaymentNetwork.visa.rawValue
+        case "mastercard":
+            return PKPaymentNetwork.masterCard.rawValue
+        case "amex":
+            return PKPaymentNetwork.amex.rawValue
+        case "discover":
+            return PKPaymentNetwork.discover.rawValue
+        case "jcb":
+            return PKPaymentNetwork.JCB.rawValue
+        case "vpay":
+            return PKPaymentNetwork.vPay.rawValue
+        default:
+            return trimmed
         }
     }
 

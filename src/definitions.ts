@@ -2,6 +2,7 @@ export type PayPlatform = 'ios' | 'android' | 'web';
 
 export type ApplePayNetwork =
   | 'AmEx'
+  | 'amex'
   | 'Bancomat'
   | 'Bancontact'
   | 'PagoBancomat'
@@ -11,6 +12,7 @@ export type ApplePayNetwork =
   | 'ChinaUnionPay'
   | 'Dankort'
   | 'Discover'
+  | 'discover'
   | 'Eftpos'
   | 'Electron'
   | 'Elo'
@@ -20,9 +22,12 @@ export type ApplePayNetwork =
   | 'iD'
   | 'Jaywan'
   | 'JCB'
+  | 'jcb'
   | 'mada'
   | 'Maestro'
+  | 'maestro'
   | 'MasterCard'
+  | 'masterCard'
   | 'Meeza'
   | 'Mir'
   | 'MyDebit'
@@ -33,7 +38,9 @@ export type ApplePayNetwork =
   | 'QUICPay'
   | 'Suica'
   | 'Visa'
-  | 'VPay';
+  | 'visa'
+  | 'VPay'
+  | 'vPay';
 
 export type ApplePayMerchantCapability = '3DS' | 'credit' | 'debit' | 'emv';
 

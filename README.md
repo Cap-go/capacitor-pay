@@ -516,7 +516,7 @@ The native Android implementation still accepts arbitrary JSON (forward compatib
 
 #### ApplePayNetwork
 
-<code>'AmEx' | 'Bancomat' | 'Bancontact' | 'PagoBancomat' | 'CarteBancaire' | 'CarteBancaires' | 'CartesBancaires' | 'ChinaUnionPay' | 'Dankort' | 'Discover' | 'Eftpos' | 'Electron' | 'Elo' | 'girocard' | 'Himyan' | 'Interac' | 'iD' | 'Jaywan' | 'JCB' | 'mada' | 'Maestro' | 'MasterCard' | 'Meeza' | 'Mir' | 'MyDebit' | 'NAPAS' | 'BankAxept' | 'PostFinanceAG' | 'PrivateLabel' | 'QUICPay' | 'Suica' | 'Visa' | 'VPay'</code>
+<code>'AmEx' | 'amex' | 'Bancomat' | 'Bancontact' | 'PagoBancomat' | 'CarteBancaire' | 'CarteBancaires' | 'CartesBancaires' | 'ChinaUnionPay' | 'Dankort' | 'Discover' | 'discover' | 'Eftpos' | 'Electron' | 'Elo' | 'girocard' | 'Himyan' | 'Interac' | 'iD' | 'Jaywan' | 'JCB' | 'jcb' | 'mada' | 'Maestro' | 'maestro' | 'MasterCard' | 'masterCard' | 'Meeza' | 'Mir' | 'MyDebit' | 'NAPAS' | 'BankAxept' | 'PostFinanceAG' | 'PrivateLabel' | 'QUICPay' | 'Suica' | 'Visa' | 'visa' | 'VPay' | 'vPay'</code>
 
 
 #### GooglePayEnvironment
