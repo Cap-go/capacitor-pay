@@ -47,7 +47,7 @@ import { Pay } from '@capgo/capacitor-pay';
 // Check availability on the current platform.
 const availability = await Pay.isPayAvailable({
   apple: {
-    supportedNetworks: ['Visa', 'MasterCard', 'AmEx'],
+    supportedNetworks: ['visa', 'masterCard', 'amex'],
   },
   google: {
     // Optional: falls back to a basic CARD request if omitted.
@@ -76,7 +76,7 @@ if (availability.platform === 'ios') {
       merchantIdentifier: 'merchant.com.example.app',
       countryCode: 'US',
       currencyCode: 'USD',
-      supportedNetworks: ['Visa', 'MasterCard'],
+      supportedNetworks: ['visa', 'masterCard'],
       paymentSummaryItems: [
         { label: 'Example Product', amount: '19.99' },
         { label: 'Tax', amount: '1.60' },
@@ -142,7 +142,7 @@ await Pay.requestPayment({
     merchantIdentifier: 'merchant.com.example.app',
     countryCode: 'US',
     currencyCode: 'USD',
-    supportedNetworks: ['Visa', 'MasterCard'],
+    supportedNetworks: ['visa', 'masterCard'],
     paymentSummaryItems: [
       { label: 'Pro Plan', amount: '9.99' },
       { label: 'Example Store', amount: '9.99' },

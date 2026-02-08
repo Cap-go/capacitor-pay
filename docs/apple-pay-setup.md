@@ -92,7 +92,7 @@ await Pay.requestPayment({
     merchantIdentifier: 'merchant.com.example.app',
     countryCode: 'US',
     currencyCode: 'USD',
-    supportedNetworks: ['Visa', 'MasterCard'],
+    supportedNetworks: ['visa', 'masterCard'],
     paymentSummaryItems: [
       { label: 'Pro Plan', amount: '9.99' },
       { label: 'Example Store', amount: '9.99' },
