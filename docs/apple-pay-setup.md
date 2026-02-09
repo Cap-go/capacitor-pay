@@ -72,6 +72,46 @@ Your server must broker the merchant validation handshake before the device can 
 - Provide a list of networks (`supportedNetworks`) that matches the networks approved by your processor.
 - Include realistic summary items and ensure the total is a final amount.
 
+## Recurring payments (subscriptions)
+
+This plugin supports Apple Pay recurring payments on **iOS 16+** via `recurringPaymentRequest`.
+
+Key points:
+
+- You still provide `paymentSummaryItems` (what’s shown in the sheet).
+- The recurring metadata is provided via `recurringPaymentRequest`.
+- If you pass `recurringPaymentRequest` on iOS 15 or earlier, the plugin rejects the call.
+
+Example:
+
+```ts
+import { Pay } from '@capgo/capacitor-pay';
+
+await Pay.requestPayment({
+  apple: {
+    merchantIdentifier: 'merchant.com.example.app',
+    countryCode: 'US',
+    currencyCode: 'USD',
+    supportedNetworks: ['visa', 'masterCard'],
+    paymentSummaryItems: [
+      { label: 'Pro Plan', amount: '9.99' },
+      { label: 'Example Store', amount: '9.99' },
+    ],
+    recurringPaymentRequest: {
+      paymentDescription: 'Pro Plan Subscription',
+      managementURL: 'https://example.com/account/subscription',
+      regularBilling: {
+        label: 'Pro Plan',
+        amount: '9.99',
+        intervalUnit: 'month',
+        intervalCount: 1,
+        startDate: Date.now(),
+      },
+    },
+  },
+});
+```
+
 ## 9. Build and test on device
 
 - Apple Pay is unavailable on the iOS simulator. Use a real device signed into an Apple ID with a supported card in Wallet.

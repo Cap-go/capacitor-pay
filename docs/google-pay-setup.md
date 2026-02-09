@@ -61,6 +61,60 @@ Handle the encrypted payment data server-side before charging the customer:
    - `merchantInfo` for user-facing display
 3. Provide this JSON to `Pay.requestPayment({ google: { ... } })`.
 
+## Subscriptions / recurring charges
+
+Google Pay itself returns a **payment token** (or gateway payload). Subscriptions are typically implemented by:
+
+1. Collecting a token once using `Pay.requestPayment`.
+2. Sending the token to your backend.
+3. Creating and managing recurring charges with your PSP/gateway (Stripe/Adyen/Braintree/etc).
+
+Example `paymentDataRequest` (gateway tokenization):
+
+```ts
+import { Pay, type GooglePayPaymentDataRequest } from '@capgo/capacitor-pay';
+
+const paymentDataRequest: GooglePayPaymentDataRequest = {
+  apiVersion: 2,
+  apiVersionMinor: 0,
+  allowedPaymentMethods: [
+    {
+      type: 'CARD',
+      parameters: {
+        allowedAuthMethods: ['PAN_ONLY', 'CRYPTOGRAM_3DS'],
+        allowedCardNetworks: ['AMEX', 'DISCOVER', 'MASTERCARD', 'VISA'],
+      },
+      tokenizationSpecification: {
+        type: 'PAYMENT_GATEWAY',
+        parameters: {
+          gateway: 'example',
+          gatewayMerchantId: 'exampleGatewayMerchantId',
+        },
+      },
+    },
+  ],
+  merchantInfo: {
+    merchantId: '01234567890123456789',
+    merchantName: 'Example Merchant',
+  },
+  transactionInfo: {
+    totalPriceStatus: 'FINAL',
+    totalPrice: '9.99',
+    currencyCode: 'USD',
+    countryCode: 'US',
+  },
+};
+
+const result = await Pay.requestPayment({
+  google: {
+    environment: 'test',
+    paymentDataRequest,
+  },
+});
+
+// Send `result.google?.paymentData` to your backend and use your PSP to start the subscription.
+```
+
 ## 8. Use the correct environment
 
 - During development, set `environment: 'test'` and rely on test card numbers.

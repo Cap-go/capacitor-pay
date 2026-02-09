@@ -192,7 +192,194 @@ public class PayPlugin: CAPPlugin, CAPBridgedPlugin, PKPaymentAuthorizationContr
             }
         }
 
+        if let recurringOptions = options["recurringPaymentRequest"] as? [String: Any] {
+            if #available(iOS 16.0, *) {
+                paymentRequest.recurringPaymentRequest = try buildRecurringPaymentRequest(from: recurringOptions)
+            } else {
+                throw PayPluginError.invalidConfiguration("`recurringPaymentRequest` requires iOS 16 or later.")
+            }
+        }
+
         return paymentRequest
+    }
+
+    @available(iOS 16.0, *)
+    /// Builds a PassKit recurring payment request (`PKRecurringPaymentRequest`) from the JS options object.
+    private func buildRecurringPaymentRequest(from options: [String: Any]) throws -> PKRecurringPaymentRequest {
+        guard let paymentDescription = options["paymentDescription"] as? String, !paymentDescription.isEmpty else {
+            throw PayPluginError.invalidConfiguration("`recurringPaymentRequest.paymentDescription` is required.")
+        }
+
+        let regularBilling = try recurringPaymentSummaryItem(from: options["regularBilling"], fieldName: "recurringPaymentRequest.regularBilling")
+
+        guard let managementURLString = options["managementURL"] as? String,
+              let managementURL = URL(string: managementURLString) else {
+            throw PayPluginError.invalidConfiguration("`recurringPaymentRequest.managementURL` must be a valid URL string.")
+        }
+
+        let recurringRequest = PKRecurringPaymentRequest(
+            paymentDescription: paymentDescription,
+            regularBilling: regularBilling,
+            managementURL: managementURL
+        )
+
+        if let billingAgreement = options["billingAgreement"] as? String, !billingAgreement.isEmpty {
+            recurringRequest.billingAgreement = billingAgreement
+        }
+
+        if let tokenNotificationURLValue = options["tokenNotificationURL"] {
+            guard let tokenNotificationURLString = tokenNotificationURLValue as? String,
+                  let tokenNotificationURL = URL(string: tokenNotificationURLString) else {
+                throw PayPluginError.invalidConfiguration(
+                    "`recurringPaymentRequest.tokenNotificationURL` must be a valid URL string when provided."
+                )
+            }
+            recurringRequest.tokenNotificationURL = tokenNotificationURL
+        }
+
+        if let trialBillingRaw = options["trialBilling"] {
+            recurringRequest.trialBilling = try recurringPaymentSummaryItem(
+                from: trialBillingRaw,
+                fieldName: "recurringPaymentRequest.trialBilling"
+            )
+        }
+
+        return recurringRequest
+    }
+
+    @available(iOS 16.0, *)
+    /// Parses and validates a recurring payment summary item (regular or trial billing).
+    private func recurringPaymentSummaryItem(from value: Any?, fieldName: String) throws -> PKRecurringPaymentSummaryItem {
+        guard let rawItem = value as? [String: Any],
+              let label = rawItem["label"] as? String,
+              let amountString = rawItem["amount"] as? String else {
+            throw PayPluginError.invalidConfiguration("`\(fieldName)` must include `label` and `amount`.")
+        }
+
+        let amount = NSDecimalNumber(string: amountString)
+        if amount == NSDecimalNumber.notANumber {
+            throw PayPluginError.invalidConfiguration("`\(fieldName).amount` must be a valid decimal string.")
+        }
+
+        let item = PKRecurringPaymentSummaryItem(label: label, amount: amount)
+
+        if let typeString = rawItem["type"] as? String {
+            switch typeString.lowercased() {
+            case "pending":
+                item.type = .pending
+            default:
+                item.type = .final
+            }
+        }
+
+        if let intervalUnitRaw = rawItem["intervalUnit"] ?? rawItem["recurringPaymentIntervalUnit"],
+           let intervalUnit = parseRecurringIntervalUnit(from: intervalUnitRaw) {
+            item.intervalUnit = intervalUnit
+        } else {
+            throw PayPluginError.invalidConfiguration("`\(fieldName).intervalUnit` is required.")
+        }
+
+        if let intervalCountRaw = rawItem["intervalCount"] ?? rawItem["recurringPaymentIntervalCount"] {
+            if let intervalCount = parseInt(from: intervalCountRaw), intervalCount > 0 {
+                item.intervalCount = intervalCount
+            } else {
+                throw PayPluginError.invalidConfiguration("`\(fieldName).intervalCount` must be a positive integer.")
+            }
+        } else {
+            throw PayPluginError.invalidConfiguration("`\(fieldName).intervalCount` is required.")
+        }
+
+        if let startDateRaw = rawItem["startDate"] ?? rawItem["recurringPaymentStartDate"] {
+            guard let startDate = parseDate(from: startDateRaw) else {
+                throw PayPluginError.invalidConfiguration("`\(fieldName).startDate` must be a valid date.")
+            }
+            item.startDate = startDate
+        }
+
+        if let endDateRaw = rawItem["endDate"] ?? rawItem["recurringPaymentEndDate"] {
+            guard let endDate = parseDate(from: endDateRaw) else {
+                throw PayPluginError.invalidConfiguration("`\(fieldName).endDate` must be a valid date.")
+            }
+            item.endDate = endDate
+        }
+
+        return item
+    }
+
+    @available(iOS 16.0, *)
+    /// Maps string values used by Apple Pay on the Web to `NSCalendar.Unit` values required by PassKit.
+    private func parseRecurringIntervalUnit(from value: Any) -> NSCalendar.Unit? {
+        guard let stringValue = value as? String else {
+            return nil
+        }
+
+        switch stringValue.lowercased() {
+        case "day":
+            return .day
+        case "week":
+            return .weekOfYear
+        case "month":
+            return .month
+        case "year":
+            return .year
+        default:
+            return nil
+        }
+    }
+
+    /// Parses a positive integer from common JS number representations.
+    private func parseInt(from value: Any) -> Int? {
+        if let intValue = value as? Int {
+            return intValue
+        }
+        if let doubleValue = value as? Double {
+            guard doubleValue.isFinite,
+                  doubleValue.rounded() == doubleValue,
+                  doubleValue >= Double(Int.min),
+                  doubleValue <= Double(Int.max) else {
+                return nil
+            }
+            return Int(doubleValue)
+        }
+        if let stringValue = value as? String {
+            return Int(stringValue)
+        }
+        return nil
+    }
+
+    /// Parses a date from a JS value.
+    /// - For numbers, expects **milliseconds since Unix epoch**.
+    /// - For strings, accepts ISO 8601 and `yyyy-MM-dd` (UTC) formats.
+    private func parseDate(from value: Any) -> Date? {
+        if let doubleValue = value as? Double {
+            return parseDate(fromUnixNumeric: doubleValue)
+        }
+        if let intValue = value as? Int {
+            return parseDate(fromUnixNumeric: Double(intValue))
+        }
+        if let stringValue = value as? String {
+            let iso = ISO8601DateFormatter()
+            if let parsed = iso.date(from: stringValue) {
+                return parsed
+            }
+
+            // Common "YYYY-MM-DD" input used by Apple Pay examples.
+            let df = DateFormatter()
+            df.locale = Locale(identifier: "en_US_POSIX")
+            df.timeZone = TimeZone(secondsFromGMT: 0)
+            df.dateFormat = "yyyy-MM-dd"
+            return df.date(from: stringValue)
+        }
+
+        return nil
+    }
+
+    /// Parses a numeric date as **milliseconds since Unix epoch** (per the public TS contract).
+    private func parseDate(fromUnixNumeric value: Double) -> Date? {
+        guard value.isFinite else {
+            return nil
+        }
+        return Date(timeIntervalSince1970: value / 1000.0)
     }
 
     private func paymentSummaryItems(from value: Any?) -> [PKPaymentSummaryItem] {
@@ -233,9 +420,39 @@ public class PayPlugin: CAPPlugin, CAPBridgedPlugin, PKPaymentAuthorizationContr
 
         return networkStrings.compactMap { element in
             if let stringValue = element as? String {
-                return PKPaymentNetwork(rawValue: stringValue)
+                return PKPaymentNetwork(rawValue: normalizePaymentNetwork(stringValue))
             }
             return nil
+        }
+    }
+
+    private func normalizePaymentNetwork(_ value: String) -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        let key = trimmed.lowercased()
+
+        // Accept common Apple Pay on the Web identifiers too.
+        // PassKit network raw values are case-sensitive (for example "Visa", "MasterCard", "AmEx").
+        switch key {
+        case "visa":
+            return PKPaymentNetwork.visa.rawValue
+        case "mastercard":
+            return PKPaymentNetwork.masterCard.rawValue
+        case "amex":
+            return PKPaymentNetwork.amex.rawValue
+        case "discover":
+            return PKPaymentNetwork.discover.rawValue
+        case "jcb":
+            return PKPaymentNetwork.JCB.rawValue
+        case "vpay":
+            return PKPaymentNetwork.vPay.rawValue
+        case "maestro":
+            return PKPaymentNetwork.maestro.rawValue
+        case "girocard":
+            return PKPaymentNetwork.girocard.rawValue
+        case "mada":
+            return PKPaymentNetwork.mada.rawValue
+        default:
+            return trimmed
         }
     }
 
