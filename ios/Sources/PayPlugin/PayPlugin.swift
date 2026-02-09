@@ -5,7 +5,7 @@ import PassKit
 
 @objc(PayPlugin)
 public class PayPlugin: CAPPlugin, CAPBridgedPlugin, PKPaymentAuthorizationControllerDelegate {
-    private let pluginVersion: String = "8.0.12"
+    private let pluginVersion: String = "8.1.0"
     public let identifier = "PayPlugin"
     public let jsName = "Pay"
     public let pluginMethods: [CAPPluginMethod] = [
