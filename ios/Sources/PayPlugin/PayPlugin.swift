@@ -204,6 +204,7 @@ public class PayPlugin: CAPPlugin, CAPBridgedPlugin, PKPaymentAuthorizationContr
     }
 
     @available(iOS 16.0, *)
+    /// Builds a PassKit recurring payment request (`PKRecurringPaymentRequest`) from the JS options object.
     private func buildRecurringPaymentRequest(from options: [String: Any]) throws -> PKRecurringPaymentRequest {
         guard let paymentDescription = options["paymentDescription"] as? String, !paymentDescription.isEmpty else {
             throw PayPluginError.invalidConfiguration("`recurringPaymentRequest.paymentDescription` is required.")
@@ -226,8 +227,13 @@ public class PayPlugin: CAPPlugin, CAPBridgedPlugin, PKPaymentAuthorizationContr
             recurringRequest.billingAgreement = billingAgreement
         }
 
-        if let tokenNotificationURLString = options["tokenNotificationURL"] as? String,
-           let tokenNotificationURL = URL(string: tokenNotificationURLString) {
+        if let tokenNotificationURLValue = options["tokenNotificationURL"] {
+            guard let tokenNotificationURLString = tokenNotificationURLValue as? String,
+                  let tokenNotificationURL = URL(string: tokenNotificationURLString) else {
+                throw PayPluginError.invalidConfiguration(
+                    "`recurringPaymentRequest.tokenNotificationURL` must be a valid URL string when provided."
+                )
+            }
             recurringRequest.tokenNotificationURL = tokenNotificationURL
         }
 
@@ -242,6 +248,7 @@ public class PayPlugin: CAPPlugin, CAPBridgedPlugin, PKPaymentAuthorizationContr
     }
 
     @available(iOS 16.0, *)
+    /// Parses and validates a recurring payment summary item (regular or trial billing).
     private func recurringPaymentSummaryItem(from value: Any?, fieldName: String) throws -> PKRecurringPaymentSummaryItem {
         guard let rawItem = value as? [String: Any],
               let label = rawItem["label"] as? String,
@@ -255,6 +262,15 @@ public class PayPlugin: CAPPlugin, CAPBridgedPlugin, PKPaymentAuthorizationContr
         }
 
         let item = PKRecurringPaymentSummaryItem(label: label, amount: amount)
+
+        if let typeString = rawItem["type"] as? String {
+            switch typeString.lowercased() {
+            case "pending":
+                item.type = .pending
+            default:
+                item.type = .final
+            }
+        }
 
         if let intervalUnitRaw = rawItem["intervalUnit"] ?? rawItem["recurringPaymentIntervalUnit"],
            let intervalUnit = parseRecurringIntervalUnit(from: intervalUnitRaw) {
@@ -273,13 +289,17 @@ public class PayPlugin: CAPPlugin, CAPBridgedPlugin, PKPaymentAuthorizationContr
             throw PayPluginError.invalidConfiguration("`\(fieldName).intervalCount` is required.")
         }
 
-        if let startDateRaw = rawItem["startDate"] ?? rawItem["recurringPaymentStartDate"],
-           let startDate = parseDate(from: startDateRaw) {
+        if let startDateRaw = rawItem["startDate"] ?? rawItem["recurringPaymentStartDate"] {
+            guard let startDate = parseDate(from: startDateRaw) else {
+                throw PayPluginError.invalidConfiguration("`\(fieldName).startDate` must be a valid date.")
+            }
             item.startDate = startDate
         }
 
-        if let endDateRaw = rawItem["endDate"] ?? rawItem["recurringPaymentEndDate"],
-           let endDate = parseDate(from: endDateRaw) {
+        if let endDateRaw = rawItem["endDate"] ?? rawItem["recurringPaymentEndDate"] {
+            guard let endDate = parseDate(from: endDateRaw) else {
+                throw PayPluginError.invalidConfiguration("`\(fieldName).endDate` must be a valid date.")
+            }
             item.endDate = endDate
         }
 
@@ -287,6 +307,7 @@ public class PayPlugin: CAPPlugin, CAPBridgedPlugin, PKPaymentAuthorizationContr
     }
 
     @available(iOS 16.0, *)
+    /// Maps string values used by Apple Pay on the Web to `NSCalendar.Unit` values required by PassKit.
     private func parseRecurringIntervalUnit(from value: Any) -> NSCalendar.Unit? {
         guard let stringValue = value as? String else {
             return nil
@@ -306,11 +327,18 @@ public class PayPlugin: CAPPlugin, CAPBridgedPlugin, PKPaymentAuthorizationContr
         }
     }
 
+    /// Parses a positive integer from common JS number representations.
     private func parseInt(from value: Any) -> Int? {
         if let intValue = value as? Int {
             return intValue
         }
         if let doubleValue = value as? Double {
+            guard doubleValue.isFinite,
+                  doubleValue.rounded() == doubleValue,
+                  doubleValue >= Double(Int.min),
+                  doubleValue <= Double(Int.max) else {
+                return nil
+            }
             return Int(doubleValue)
         }
         if let stringValue = value as? String {
@@ -319,6 +347,9 @@ public class PayPlugin: CAPPlugin, CAPBridgedPlugin, PKPaymentAuthorizationContr
         return nil
     }
 
+    /// Parses a date from a JS value.
+    /// - For numbers, expects **milliseconds since Unix epoch**.
+    /// - For strings, accepts ISO 8601 and `yyyy-MM-dd` (UTC) formats.
     private func parseDate(from value: Any) -> Date? {
         if let doubleValue = value as? Double {
             return parseDate(fromUnixNumeric: doubleValue)
@@ -343,12 +374,12 @@ public class PayPlugin: CAPPlugin, CAPBridgedPlugin, PKPaymentAuthorizationContr
         return nil
     }
 
-    private func parseDate(fromUnixNumeric value: Double) -> Date {
-        // Heuristic: JS timestamps are usually milliseconds; Unix timestamps are seconds.
-        if value >= 1_000_000_000_000 {
-            return Date(timeIntervalSince1970: value / 1000.0)
+    /// Parses a numeric date as **milliseconds since Unix epoch** (per the public TS contract).
+    private func parseDate(fromUnixNumeric value: Double) -> Date? {
+        guard value.isFinite else {
+            return nil
         }
-        return Date(timeIntervalSince1970: value)
+        return Date(timeIntervalSince1970: value / 1000.0)
     }
 
     private func paymentSummaryItems(from value: Any?) -> [PKPaymentSummaryItem] {
@@ -414,6 +445,12 @@ public class PayPlugin: CAPPlugin, CAPBridgedPlugin, PKPaymentAuthorizationContr
             return PKPaymentNetwork.JCB.rawValue
         case "vpay":
             return PKPaymentNetwork.vPay.rawValue
+        case "maestro":
+            return PKPaymentNetwork.maestro.rawValue
+        case "girocard":
+            return PKPaymentNetwork.girocard.rawValue
+        case "mada":
+            return PKPaymentNetwork.mada.rawValue
         default:
             return trimmed
         }

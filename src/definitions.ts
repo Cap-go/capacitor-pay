@@ -68,13 +68,23 @@ export interface ApplePayRecurringPaymentSummaryItem extends ApplePaySummaryItem
    */
   intervalCount: number;
   /**
-   * Start date of the recurring period, expressed as milliseconds since Unix epoch.
+   * Start date of the recurring period.
+   *
+   * On supported platforms this may be either:
+   * - a `number` representing milliseconds since Unix epoch, or
+   * - a `string` in a date format accepted by the native implementation
+   *   (for example an ISO 8601 date-time string or a `yyyy-MM-dd` date string).
    */
-  startDate?: number;
+  startDate?: number | string;
   /**
-   * End date of the recurring period, expressed as milliseconds since Unix epoch.
+   * End date of the recurring period.
+   *
+   * On supported platforms this may be either:
+   * - a `number` representing milliseconds since Unix epoch, or
+   * - a `string` in a date format accepted by the native implementation
+   *   (for example an ISO 8601 date-time string or a `yyyy-MM-dd` date string).
    */
-  endDate?: number;
+  endDate?: number | string;
 }
 
 export interface ApplePayRecurringPaymentRequest {

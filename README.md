@@ -26,7 +26,16 @@ The most complete doc is available here: https://capgo.app/docs/plugins/pay/
 ## Install
 
 ```bash
+# Install (choose one)
+npm install @capgo/capacitor-pay
+pnpm add @capgo/capacitor-pay
+yarn add @capgo/capacitor-pay
 bun add @capgo/capacitor-pay
+
+# Then sync Capacitor (choose one)
+npx cap sync
+pnpm exec cap sync
+yarn cap sync
 bunx cap sync
 ```
 
@@ -458,12 +467,12 @@ The native Android implementation still accepts arbitrary JSON (forward compatib
 
 #### ApplePayRecurringPaymentSummaryItem
 
-| Prop                | Type                                                                                                  | Description                                                                                   |
-| ------------------- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| **`intervalUnit`**  | <code><a href="#applepayrecurringpaymentintervalunit">ApplePayRecurringPaymentIntervalUnit</a></code> | Unit of time between recurring payments.                                                      |
-| **`intervalCount`** | <code>number</code>                                                                                   | Number of `intervalUnit` units between recurring payments (for example `1` month, `2` weeks). |
-| **`startDate`**     | <code>number</code>                                                                                   | Start date of the recurring period, expressed as milliseconds since Unix epoch.               |
-| **`endDate`**       | <code>number</code>                                                                                   | End date of the recurring period, expressed as milliseconds since Unix epoch.                 |
+| Prop                | Type                                                                                                  | Description                                                                                                                                                                                                                                                                              |
+| ------------------- | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`intervalUnit`**  | <code><a href="#applepayrecurringpaymentintervalunit">ApplePayRecurringPaymentIntervalUnit</a></code> | Unit of time between recurring payments.                                                                                                                                                                                                                                                 |
+| **`intervalCount`** | <code>number</code>                                                                                   | Number of `intervalUnit` units between recurring payments (for example `1` month, `2` weeks).                                                                                                                                                                                            |
+| **`startDate`**     | <code>string \| number</code>                                                                         | Start date of the recurring period. On supported platforms this may be either: - a `number` representing milliseconds since Unix epoch, or - a `string` in a date format accepted by the native implementation (for example an ISO 8601 date-time string or a `yyyy-MM-dd` date string). |
+| **`endDate`**       | <code>string \| number</code>                                                                         | End date of the recurring period. On supported platforms this may be either: - a `number` representing milliseconds since Unix epoch, or - a `string` in a date format accepted by the native implementation (for example an ISO 8601 date-time string or a `yyyy-MM-dd` date string).   |
 
 
 #### GooglePayPaymentOptions
