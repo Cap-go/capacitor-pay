@@ -1,6 +1,6 @@
 {
   "name": "@capgo/capacitor-pay",
-  "version": "8.0.6",
+  "version": "8.1.0",
   "description": "Capacitor plugin to trigger native payment for iOS(Apple pay) and Android(Google Pay)",
   "main": "dist/plugin.cjs.js",
   "module": "dist/esm/index.js",
@@ -35,20 +35,24 @@
     "Native payment"
   ],
   "scripts": {
-    "verify": "npm run verify:ios && npm run verify:android && npm run verify:web",
+    "verify": "bun run verify:ios && bun run verify:android && bun run verify:web",
     "verify:ios": "xcodebuild -scheme CapgoCapacitorPay -destination generic/platform=iOS",
     "verify:android": "cd android && ./gradlew clean build test && cd ..",
-    "verify:web": "npm run build",
-    "lint": "npm run eslint && npm run prettier -- --check && npm run swiftlint -- lint",
-    "fmt": "npm run eslint -- --fix && npm run prettier -- --write && npm run swiftlint -- --fix --format",
+    "verify:web": "bun run build",
+    "lint": "bun run eslint && bun run prettier -- --check && bun run swiftlint -- lint",
+    "fmt": "bun run eslint -- --fix && bun run prettier -- --write && bun run swiftlint -- --fix --format",
     "eslint": "eslint . --ext ts",
     "prettier": "prettier-pretty-check \"**/*.{css,html,ts,js,java}\" --plugin=prettier-plugin-java",
     "swiftlint": "node-swiftlint",
     "docgen": "docgen --api PayPlugin --output-readme README.md --output-json dist/docs.json",
-    "build": "npm run clean && npm run docgen && tsc && rollup -c rollup.config.mjs",
+    "build": "bun run clean && bun run docgen && tsc && rollup -c rollup.config.mjs",
     "clean": "rimraf ./dist",
     "watch": "tsc --watch",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "bun run build",
+    "check:wiring": "node scripts/check-capacitor-plugin-wiring.mjs"
+  },
+  "dependencies": {
+    "@types/googlepay": "^0.7.10"
   },
   "devDependencies": {
     "@capacitor/android": "^8.0.0",
@@ -58,7 +62,6 @@
     "@ionic/eslint-config": "^0.4.0",
     "@ionic/prettier-config": "^4.0.0",
     "@ionic/swiftlint-config": "^2.0.0",
-    "@types/googlepay": "^0.7.10",
     "@types/node": "^24.10.1",
     "eslint": "^8.57.1",
     "eslint-plugin-import": "^2.31.0",

@@ -33,7 +33,7 @@ import org.json.JSONObject;
 @CapacitorPlugin(name = "Pay")
 public class PayPlugin extends Plugin {
 
-    private final String pluginVersion = "8.0.6";
+    private final String pluginVersion = "8.1.0";
 
     private boolean paymentInProgress = false;
     private boolean resolutionInProgress = false;
@@ -132,7 +132,9 @@ public class PayPlugin extends Plugin {
             PaymentDataRequest request = PaymentDataRequest.fromJson(paymentRequestJson.toString());
             this.paymentInProgress = true;
             client.loadPaymentData(request).addOnSuccessListener(this::emitAuthorized).addOnFailureListener(this::emitError);
-            call.resolve();
+            JSObject result = new JSObject();
+            result.put("platform", "android");
+            call.resolve(result);
         } catch (Exception ex) {
             this.paymentInProgress = false;
             call.reject("Failed to launch Google Pay.", ex);

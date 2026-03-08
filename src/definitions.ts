@@ -1,9 +1,12 @@
+/// <reference types="googlepay" />
+
 import type { PluginListenerHandle } from '@capacitor/core';
 
 export type PayPlatform = 'ios' | 'android' | 'web';
 
 export type ApplePayNetwork =
   | 'AmEx'
+  | 'amex'
   | 'Bancomat'
   | 'Bancontact'
   | 'PagoBancomat'
@@ -13,6 +16,7 @@ export type ApplePayNetwork =
   | 'ChinaUnionPay'
   | 'Dankort'
   | 'Discover'
+  | 'discover'
   | 'Eftpos'
   | 'Electron'
   | 'Elo'
@@ -22,9 +26,12 @@ export type ApplePayNetwork =
   | 'iD'
   | 'Jaywan'
   | 'JCB'
+  | 'jcb'
   | 'mada'
   | 'Maestro'
+  | 'maestro'
   | 'MasterCard'
+  | 'masterCard'
   | 'Meeza'
   | 'Mir'
   | 'MyDebit'
@@ -35,7 +42,9 @@ export type ApplePayNetwork =
   | 'QUICPay'
   | 'Suica'
   | 'Visa'
-  | 'VPay';
+  | 'visa'
+  | 'VPay'
+  | 'vPay';
 
 export type ApplePayMerchantCapability = '3DS' | 'credit' | 'debit' | 'emv';
 
@@ -49,6 +58,64 @@ export interface ApplePaySummaryItem {
   label: string;
   amount: string;
   type?: ApplePaySummaryItemType;
+}
+
+export type ApplePayRecurringPaymentIntervalUnit = 'day' | 'week' | 'month' | 'year';
+
+export interface ApplePayRecurringPaymentSummaryItem extends ApplePaySummaryItem {
+  /**
+   * Unit of time between recurring payments.
+   */
+  intervalUnit: ApplePayRecurringPaymentIntervalUnit;
+  /**
+   * Number of `intervalUnit` units between recurring payments (for example `1` month, `2` weeks).
+   */
+  intervalCount: number;
+  /**
+   * Start date of the recurring period.
+   *
+   * On supported platforms this may be either:
+   * - a `number` representing milliseconds since Unix epoch, or
+   * - a `string` in a date format accepted by the native implementation
+   *   (for example an ISO 8601 date-time string or a `yyyy-MM-dd` date string).
+   */
+  startDate?: number | string;
+  /**
+   * End date of the recurring period.
+   *
+   * On supported platforms this may be either:
+   * - a `number` representing milliseconds since Unix epoch, or
+   * - a `string` in a date format accepted by the native implementation
+   *   (for example an ISO 8601 date-time string or a `yyyy-MM-dd` date string).
+   */
+  endDate?: number | string;
+}
+
+export interface ApplePayRecurringPaymentRequest {
+  /**
+   * A description for the recurring payment shown in the Apple Pay sheet.
+   */
+  paymentDescription: string;
+  /**
+   * The recurring billing item (for example your subscription).
+   */
+  regularBilling: ApplePayRecurringPaymentSummaryItem;
+  /**
+   * URL where the user can manage the recurring payment (cancel, update, etc).
+   */
+  managementURL: string;
+  /**
+   * Optional billing agreement text shown to the user.
+   */
+  billingAgreement?: string;
+  /**
+   * Optional URL where Apple can send token update notifications.
+   */
+  tokenNotificationURL?: string;
+  /**
+   * Optional trial billing item (for example a free trial period).
+   */
+  trialBilling?: ApplePayRecurringPaymentSummaryItem;
 }
 
 export interface ApplePayAvailabilityOptions {
@@ -115,6 +182,11 @@ export interface ApplePayPaymentOptions {
    * Optional opaque application data passed back in the payment token.
    */
   applicationData?: string;
+
+  /**
+   * Recurring payment configuration (iOS 16+).
+   */
+  recurringPaymentRequest?: ApplePayRecurringPaymentRequest;
 }
 
 export interface ApplePayContact {
@@ -164,6 +236,100 @@ export interface ApplePayPaymentResult {
 
 export type GooglePayEnvironment = 'test' | 'production';
 
+export type GooglePayCardNetwork =
+  | google.payments.api.CardNetwork
+  // Keep this open-ended so users can pass new/region-specific networks without waiting for a release.
+  | (string & Record<never, never>);
+
+export type GooglePayAuthMethod =
+  | google.payments.api.CardAuthMethod
+  // Keep this open-ended for forward compatibility without waiting for a release.
+  | (string & Record<never, never>);
+
+export type GooglePayTotalPriceStatus = 'NOT_CURRENTLY_KNOWN' | 'ESTIMATED' | 'FINAL' | (string & Record<never, never>);
+
+export interface GooglePayBillingAddressParameters {
+  format?: 'MIN' | 'FULL' | (string & Record<never, never>);
+  phoneNumberRequired?: boolean;
+}
+
+export interface GooglePayCardPaymentMethodParameters extends Omit<
+  google.payments.api.CardParameters,
+  'allowedAuthMethods' | 'allowedCardNetworks'
+> {
+  allowedAuthMethods: GooglePayAuthMethod[];
+  allowedCardNetworks: GooglePayCardNetwork[];
+}
+
+export interface GooglePayTokenizationSpecification {
+  type?: 'PAYMENT_GATEWAY' | 'DIRECT' | (string & Record<never, never>);
+  parameters?: Record<string, string>;
+}
+
+export interface GooglePayAllowedPaymentMethod {
+  type?: 'CARD' | (string & Record<never, never>);
+  parameters?: GooglePayCardPaymentMethodParameters;
+  tokenizationSpecification?: GooglePayTokenizationSpecification;
+}
+
+export interface GooglePayMerchantInfo {
+  merchantId?: string;
+  merchantName?: string;
+}
+
+export interface GooglePayTransactionInfo {
+  totalPriceStatus?: GooglePayTotalPriceStatus;
+  totalPrice?: string;
+  currencyCode?: string;
+  countryCode?: string;
+}
+
+/**
+ * Typed helper for the Google Pay `IsReadyToPayRequest` JSON.
+ * The native Android implementation still accepts arbitrary JSON (forward compatible).
+ */
+export interface GooglePayIsReadyToPayRequest {
+  /**
+   * The list of payment methods you want to check for readiness.
+   */
+  allowedPaymentMethods?: GooglePayAllowedPaymentMethod[];
+  /**
+   * Forward-compatible escape hatch for additional fields supported by Google Pay.
+   */
+  [key: string]: unknown;
+}
+
+/**
+ * Typed helper for the Google Pay `PaymentDataRequest` JSON.
+ * The native Android implementation still accepts arbitrary JSON (forward compatible).
+ */
+export interface GooglePayPaymentDataRequest {
+  /**
+   * Google Pay API version, typically `2`.
+   */
+  apiVersion?: number;
+  /**
+   * Google Pay API minor version, typically `0`.
+   */
+  apiVersionMinor?: number;
+  /**
+   * Allowed payment method configurations.
+   */
+  allowedPaymentMethods?: GooglePayAllowedPaymentMethod[];
+  /**
+   * Merchant information displayed in the Google Pay sheet.
+   */
+  merchantInfo?: GooglePayMerchantInfo;
+  /**
+   * Transaction details (amount, currency, etc).
+   */
+  transactionInfo?: GooglePayTransactionInfo;
+  /**
+   * Forward-compatible escape hatch for additional fields supported by Google Pay.
+   */
+  [key: string]: unknown;
+}
+
 export interface GooglePayAvailabilityOptions {
   /**
    * Environment used to construct the Google Payments client. Defaults to `'test'`.
@@ -175,20 +341,20 @@ export interface GooglePayAvailabilityOptions {
    *
    * @see https://developers.google.com/pay/api/android/reference/request-objects#IsReadyToPayRequest
    */
-  isReadyToPayRequest: google.payments.api.IsReadyToPayRequest;
+  isReadyToPayRequest?: GooglePayIsReadyToPayRequest;
 }
 
 export interface GooglePayAvailabilityResult {
   /**
    * Whether the user is able to provide payment information through the Google Pay payment sheet.
    */
-  isReady: google.payments.api.IsReadyToPayResponse['result'];
+  isReady: boolean;
   /**
    * The current user's ability to pay with one or more of the payment methods specified in `IsReadyToPayRequest.allowedPaymentMethods`.
    *
    * This property only exists if `IsReadyToPayRequest.existingPaymentMethodRequired` was set to `true`. The property value will always be `true` if the request is configured for a test environment.
    */
-  paymentMethodPresent: google.payments.api.IsReadyToPayResponse['paymentMethodPresent'];
+  paymentMethodPresent: boolean | undefined;
 }
 
 export interface GooglePayPaymentOptions {
@@ -202,7 +368,7 @@ export interface GooglePayPaymentOptions {
    *
    * @see https://developers.google.com/pay/api/android/reference/request-objects#PaymentDataRequest
    */
-  paymentDataRequest: google.payments.api.PaymentDataRequest;
+  paymentDataRequest: GooglePayPaymentDataRequest;
 }
 
 export interface GooglePayPaymentResult {

@@ -22,11 +22,31 @@ Capacitor plugin to trigger native payments with Apple Pay and Google Pay using 
 
 The most complete doc is available here: https://capgo.app/docs/plugins/pay/
 
+## Compatibility
+
+| Plugin version | Capacitor compatibility | Maintained |
+| -------------- | ----------------------- | ---------- |
+| v8.\*.\*       | v8.\*.\*                | ✅          |
+| v7.\*.\*       | v7.\*.\*                | On demand   |
+| v6.\*.\*       | v6.\*.\*                | ❌          |
+| v5.\*.\*       | v5.\*.\*                | ❌          |
+
+> **Note:** The major version of this plugin follows the major version of Capacitor. Use the version that matches your Capacitor installation (e.g., plugin v8 for Capacitor 8). Only the latest major version is actively maintained.
+
 ## Install
 
 ```bash
+# Install (choose one)
 npm install @capgo/capacitor-pay
+pnpm add @capgo/capacitor-pay
+yarn add @capgo/capacitor-pay
+bun add @capgo/capacitor-pay
+
+# Then sync Capacitor (choose one)
 npx cap sync
+pnpm exec cap sync
+yarn cap sync
+bunx cap sync
 ```
 
 ## Platform setup
@@ -86,17 +106,17 @@ if (availability.platform === 'ios') {
   });
   console.log(result.apple?.paymentData);
 } else if (availability.platform === 'android') {
-  await addListener('onAuthorized', (result) => {
+  await Pay.addListener('onAuthorized', (result) => {
     console.log('Payment authorized:', result.google.paymentData);
     // Process the payment token on your backend server here.
   });
 
-  await addListener('onCanceled', (result) => {
+  await Pay.addListener('onCanceled', (result) => {
     console.log('Payment canceled by user', result);
     // Handle the cancellation gracefully in your UI.
   });
 
-  await addListener('onError', (error) => {
+  await Pay.addListener('onError', (error) => {
     console.error('Payment error:', error);
     // Handle the error gracefully in your UI.
   });
@@ -141,6 +161,89 @@ if (availability.platform === 'ios') {
     },
   });
 }
+```
+
+## Recurring payments
+
+Apple Pay has first-class support via `recurringPaymentRequest` (iOS 16+):
+
+```ts
+import { Pay } from '@capgo/capacitor-pay';
+
+await Pay.requestPayment({
+  apple: {
+    merchantIdentifier: 'merchant.com.example.app',
+    countryCode: 'US',
+    currencyCode: 'USD',
+    supportedNetworks: ['visa', 'masterCard'],
+    paymentSummaryItems: [
+      { label: 'Pro Plan', amount: '9.99' },
+      { label: 'Example Store', amount: '9.99' },
+    ],
+    recurringPaymentRequest: {
+      paymentDescription: 'Pro Plan Subscription',
+      managementURL: 'https://example.com/account/subscription',
+      regularBilling: {
+        label: 'Pro Plan',
+        amount: '9.99',
+        intervalUnit: 'month',
+        intervalCount: 1,
+        startDate: Date.now(),
+      },
+    },
+  },
+});
+```
+
+Google Pay does not have a dedicated "recurring request" object in `PaymentDataRequest`. For subscriptions you typically:
+
+1. Collect a token once with a normal `paymentDataRequest`.
+2. Store it server-side and create recurring charges with your PSP/gateway (Stripe/Adyen/Braintree/etc).
+
+```ts
+import { Pay, type GooglePayPaymentDataRequest } from '@capgo/capacitor-pay';
+
+const paymentDataRequest: GooglePayPaymentDataRequest = {
+  apiVersion: 2,
+  apiVersionMinor: 0,
+  allowedPaymentMethods: [
+    {
+      type: 'CARD',
+      parameters: {
+        allowedAuthMethods: ['PAN_ONLY', 'CRYPTOGRAM_3DS'],
+        allowedCardNetworks: ['AMEX', 'DISCOVER', 'MASTERCARD', 'VISA'],
+      },
+      tokenizationSpecification: {
+        type: 'PAYMENT_GATEWAY',
+        parameters: {
+          gateway: 'example',
+          gatewayMerchantId: 'exampleGatewayMerchantId',
+        },
+      },
+    },
+  ],
+  merchantInfo: {
+    merchantId: '01234567890123456789',
+    merchantName: 'Example Merchant',
+  },
+  transactionInfo: {
+    totalPriceStatus: 'FINAL',
+    totalPrice: '9.99',
+    currencyCode: 'USD',
+    countryCode: 'US',
+  },
+};
+
+await Pay.addListener('onAuthorized', ({ google }) => {
+  // Send `google.paymentData` to your backend and use your PSP to start the subscription.
+});
+
+await Pay.requestPayment({
+  google: {
+    environment: 'test',
+    paymentDataRequest,
+  },
+});
 ```
 
 ## API
@@ -328,10 +431,45 @@ Remove all the listeners that are attached to this plugin.
 
 #### GooglePayAvailabilityOptions
 
-| Prop                      | Type                                                                  | Description                                                                                                                                  |
-| ------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`environment`**         | <code><a href="#googlepayenvironment">GooglePayEnvironment</a></code> | Environment used to construct the Google Payments client. Defaults to `'test'`.                                                              |
-| **`isReadyToPayRequest`** | <code>google.payments.api.IsReadyToPayRequest</code>                  | Raw `IsReadyToPayRequest` JSON as defined by the Google Pay API. Supply the card networks and auth methods you intend to support at runtime. |
+| Prop                      | Type                                                                                  | Description                                                                                                                                  |
+| ------------------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`environment`**         | <code><a href="#googlepayenvironment">GooglePayEnvironment</a></code>                 | Environment used to construct the Google Payments client. Defaults to `'test'`.                                                              |
+| **`isReadyToPayRequest`** | <code><a href="#googlepayisreadytopayrequest">GooglePayIsReadyToPayRequest</a></code> | Raw `IsReadyToPayRequest` JSON as defined by the Google Pay API. Supply the card networks and auth methods you intend to support at runtime. |
+
+
+#### GooglePayIsReadyToPayRequest
+
+Typed helper for the Google Pay `IsReadyToPayRequest` JSON.
+The native Android implementation still accepts arbitrary JSON (forward compatible).
+
+| Prop                        | Type                                         | Description                                                  |
+| --------------------------- | -------------------------------------------- | ------------------------------------------------------------ |
+| **`allowedPaymentMethods`** | <code>GooglePayAllowedPaymentMethod[]</code> | The list of payment methods you want to check for readiness. |
+
+
+#### GooglePayAllowedPaymentMethod
+
+| Prop                            | Type                                                                                                  |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| **`type`**                      | <code>(string & <a href="#record">Record</a>&lt;never, never&gt;) \| 'CARD'</code>                    |
+| **`parameters`**                | <code><a href="#googlepaycardpaymentmethodparameters">GooglePayCardPaymentMethodParameters</a></code> |
+| **`tokenizationSpecification`** | <code><a href="#googlepaytokenizationspecification">GooglePayTokenizationSpecification</a></code>     |
+
+
+#### GooglePayCardPaymentMethodParameters
+
+| Prop                      | Type                                |
+| ------------------------- | ----------------------------------- |
+| **`allowedAuthMethods`**  | <code>GooglePayAuthMethod[]</code>  |
+| **`allowedCardNetworks`** | <code>GooglePayCardNetwork[]</code> |
+
+
+#### GooglePayTokenizationSpecification
+
+| Prop             | Type                                                                                                      |
+| ---------------- | --------------------------------------------------------------------------------------------------------- |
+| **`type`**       | <code>(string & <a href="#record">Record</a>&lt;never, never&gt;) \| 'PAYMENT_GATEWAY' \| 'DIRECT'</code> |
+| **`parameters`** | <code><a href="#record">Record</a>&lt;string, string&gt;</code>                                           |
 
 
 #### PayPaymentResult
@@ -375,19 +513,20 @@ Remove all the listeners that are attached to this plugin.
 
 #### ApplePayPaymentOptions
 
-| Prop                                | Type                                                                  | Description                                                        |
-| ----------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| **`merchantIdentifier`**            | <code>string</code>                                                   | Merchant identifier created in the Apple Developer portal.         |
-| **`countryCode`**                   | <code>string</code>                                                   | Two-letter ISO 3166 country code.                                  |
-| **`currencyCode`**                  | <code>string</code>                                                   | Three-letter ISO 4217 currency code.                               |
-| **`paymentSummaryItems`**           | <code>ApplePaySummaryItem[]</code>                                    | Payment summary items displayed in the Apple Pay sheet.            |
-| **`supportedNetworks`**             | <code>ApplePayNetwork[]</code>                                        | Card networks to support.                                          |
-| **`merchantCapabilities`**          | <code>ApplePayMerchantCapability[]</code>                             | Merchant payment capabilities. Defaults to ['3DS'] when omitted.   |
-| **`requiredShippingContactFields`** | <code>ApplePayContactField[]</code>                                   | Contact fields that must be supplied for shipping.                 |
-| **`requiredBillingContactFields`**  | <code>ApplePayContactField[]</code>                                   | Contact fields that must be supplied for billing.                  |
-| **`shippingType`**                  | <code><a href="#applepayshippingtype">ApplePayShippingType</a></code> | Controls the shipping flow presented to the user.                  |
-| **`supportedCountries`**            | <code>string[]</code>                                                 | Optional ISO 3166 country codes where the merchant is supported.   |
-| **`applicationData`**               | <code>string</code>                                                   | Optional opaque application data passed back in the payment token. |
+| Prop                                | Type                                                                                        | Description                                                        |
+| ----------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| **`merchantIdentifier`**            | <code>string</code>                                                                         | Merchant identifier created in the Apple Developer portal.         |
+| **`countryCode`**                   | <code>string</code>                                                                         | Two-letter ISO 3166 country code.                                  |
+| **`currencyCode`**                  | <code>string</code>                                                                         | Three-letter ISO 4217 currency code.                               |
+| **`paymentSummaryItems`**           | <code>ApplePaySummaryItem[]</code>                                                          | Payment summary items displayed in the Apple Pay sheet.            |
+| **`supportedNetworks`**             | <code>ApplePayNetwork[]</code>                                                              | Card networks to support.                                          |
+| **`merchantCapabilities`**          | <code>ApplePayMerchantCapability[]</code>                                                   | Merchant payment capabilities. Defaults to ['3DS'] when omitted.   |
+| **`requiredShippingContactFields`** | <code>ApplePayContactField[]</code>                                                         | Contact fields that must be supplied for shipping.                 |
+| **`requiredBillingContactFields`**  | <code>ApplePayContactField[]</code>                                                         | Contact fields that must be supplied for billing.                  |
+| **`shippingType`**                  | <code><a href="#applepayshippingtype">ApplePayShippingType</a></code>                       | Controls the shipping flow presented to the user.                  |
+| **`supportedCountries`**            | <code>string[]</code>                                                                       | Optional ISO 3166 country codes where the merchant is supported.   |
+| **`applicationData`**               | <code>string</code>                                                                         | Optional opaque application data passed back in the payment token. |
+| **`recurringPaymentRequest`**       | <code><a href="#applepayrecurringpaymentrequest">ApplePayRecurringPaymentRequest</a></code> | Recurring payment configuration (iOS 16+).                         |
 
 
 #### ApplePaySummaryItem
@@ -399,12 +538,66 @@ Remove all the listeners that are attached to this plugin.
 | **`type`**   | <code><a href="#applepaysummaryitemtype">ApplePaySummaryItemType</a></code> |
 
 
+#### ApplePayRecurringPaymentRequest
+
+| Prop                       | Type                                                                                                | Description                                                                |
+| -------------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| **`paymentDescription`**   | <code>string</code>                                                                                 | A description for the recurring payment shown in the Apple Pay sheet.      |
+| **`regularBilling`**       | <code><a href="#applepayrecurringpaymentsummaryitem">ApplePayRecurringPaymentSummaryItem</a></code> | The recurring billing item (for example your subscription).                |
+| **`managementURL`**        | <code>string</code>                                                                                 | URL where the user can manage the recurring payment (cancel, update, etc). |
+| **`billingAgreement`**     | <code>string</code>                                                                                 | Optional billing agreement text shown to the user.                         |
+| **`tokenNotificationURL`** | <code>string</code>                                                                                 | Optional URL where Apple can send token update notifications.              |
+| **`trialBilling`**         | <code><a href="#applepayrecurringpaymentsummaryitem">ApplePayRecurringPaymentSummaryItem</a></code> | Optional trial billing item (for example a free trial period).             |
+
+
+#### ApplePayRecurringPaymentSummaryItem
+
+| Prop                | Type                                                                                                  | Description                                                                                                                                                                                                                                                                              |
+| ------------------- | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`intervalUnit`**  | <code><a href="#applepayrecurringpaymentintervalunit">ApplePayRecurringPaymentIntervalUnit</a></code> | Unit of time between recurring payments.                                                                                                                                                                                                                                                 |
+| **`intervalCount`** | <code>number</code>                                                                                   | Number of `intervalUnit` units between recurring payments (for example `1` month, `2` weeks).                                                                                                                                                                                            |
+| **`startDate`**     | <code>string \| number</code>                                                                         | Start date of the recurring period. On supported platforms this may be either: - a `number` representing milliseconds since Unix epoch, or - a `string` in a date format accepted by the native implementation (for example an ISO 8601 date-time string or a `yyyy-MM-dd` date string). |
+| **`endDate`**       | <code>string \| number</code>                                                                         | End date of the recurring period. On supported platforms this may be either: - a `number` representing milliseconds since Unix epoch, or - a `string` in a date format accepted by the native implementation (for example an ISO 8601 date-time string or a `yyyy-MM-dd` date string).   |
+
+
 #### GooglePayPaymentOptions
 
-| Prop                     | Type                                                                  | Description                                                                                                                              |
-| ------------------------ | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **`environment`**        | <code><a href="#googlepayenvironment">GooglePayEnvironment</a></code> | Environment used to construct the Google Payments client. Defaults to `'test'`.                                                          |
-| **`paymentDataRequest`** | <code>google.payments.api.PaymentDataRequest</code>                   | Raw `PaymentDataRequest` JSON as defined by the Google Pay API. Provide transaction details, merchant info, and tokenization parameters. |
+| Prop                     | Type                                                                                | Description                                                                                                                              |
+| ------------------------ | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **`environment`**        | <code><a href="#googlepayenvironment">GooglePayEnvironment</a></code>               | Environment used to construct the Google Payments client. Defaults to `'test'`.                                                          |
+| **`paymentDataRequest`** | <code><a href="#googlepaypaymentdatarequest">GooglePayPaymentDataRequest</a></code> | Raw `PaymentDataRequest` JSON as defined by the Google Pay API. Provide transaction details, merchant info, and tokenization parameters. |
+
+
+#### GooglePayPaymentDataRequest
+
+Typed helper for the Google Pay `PaymentDataRequest` JSON.
+The native Android implementation still accepts arbitrary JSON (forward compatible).
+
+| Prop                        | Type                                                                          | Description                                             |
+| --------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------- |
+| **`apiVersion`**            | <code>number</code>                                                           | Google Pay API version, typically `2`.                  |
+| **`apiVersionMinor`**       | <code>number</code>                                                           | Google Pay API minor version, typically `0`.            |
+| **`allowedPaymentMethods`** | <code>GooglePayAllowedPaymentMethod[]</code>                                  | Allowed payment method configurations.                  |
+| **`merchantInfo`**          | <code><a href="#googlepaymerchantinfo">GooglePayMerchantInfo</a></code>       | Merchant information displayed in the Google Pay sheet. |
+| **`transactionInfo`**       | <code><a href="#googlepaytransactioninfo">GooglePayTransactionInfo</a></code> | Transaction details (amount, currency, etc).            |
+
+
+#### GooglePayMerchantInfo
+
+| Prop               | Type                |
+| ------------------ | ------------------- |
+| **`merchantId`**   | <code>string</code> |
+| **`merchantName`** | <code>string</code> |
+
+
+#### GooglePayTransactionInfo
+
+| Prop                   | Type                                                                            |
+| ---------------------- | ------------------------------------------------------------------------------- |
+| **`totalPriceStatus`** | <code><a href="#googlepaytotalpricestatus">GooglePayTotalPriceStatus</a></code> |
+| **`totalPrice`**       | <code>string</code>                                                             |
+| **`currencyCode`**     | <code>string</code>                                                             |
+| **`countryCode`**      | <code>string</code>                                                             |
 
 
 #### PluginListenerHandle
@@ -431,12 +624,29 @@ Remove all the listeners that are attached to this plugin.
 
 #### ApplePayNetwork
 
-<code>'AmEx' | 'Bancomat' | 'Bancontact' | 'PagoBancomat' | 'CarteBancaire' | 'CarteBancaires' | 'CartesBancaires' | 'ChinaUnionPay' | 'Dankort' | 'Discover' | 'Eftpos' | 'Electron' | 'Elo' | 'girocard' | 'Himyan' | 'Interac' | 'iD' | 'Jaywan' | 'JCB' | 'mada' | 'Maestro' | 'MasterCard' | 'Meeza' | 'Mir' | 'MyDebit' | 'NAPAS' | 'BankAxept' | 'PostFinanceAG' | 'PrivateLabel' | 'QUICPay' | 'Suica' | 'Visa' | 'VPay'</code>
+<code>'AmEx' | 'amex' | 'Bancomat' | 'Bancontact' | 'PagoBancomat' | 'CarteBancaire' | 'CarteBancaires' | 'CartesBancaires' | 'ChinaUnionPay' | 'Dankort' | 'Discover' | 'discover' | 'Eftpos' | 'Electron' | 'Elo' | 'girocard' | 'Himyan' | 'Interac' | 'iD' | 'Jaywan' | 'JCB' | 'jcb' | 'mada' | 'Maestro' | 'maestro' | 'MasterCard' | 'masterCard' | 'Meeza' | 'Mir' | 'MyDebit' | 'NAPAS' | 'BankAxept' | 'PostFinanceAG' | 'PrivateLabel' | 'QUICPay' | 'Suica' | 'Visa' | 'visa' | 'VPay' | 'vPay'</code>
 
 
 #### GooglePayEnvironment
 
 <code>'test' | 'production'</code>
+
+
+#### Record
+
+Construct a type with a set of properties K of type T
+
+<code>{ [P in K]: T; }</code>
+
+
+#### GooglePayAuthMethod
+
+<code>google.payments.api.CardAuthMethod | (string & <a href="#record">Record</a>&lt;never, never&gt;)</code>
+
+
+#### GooglePayCardNetwork
+
+<code>google.payments.api.CardNetwork | (string & <a href="#record">Record</a>&lt;never, never&gt;)</code>
 
 
 #### Exclude
@@ -464,5 +674,15 @@ Remove all the listeners that are attached to this plugin.
 #### ApplePayShippingType
 
 <code>'shipping' | 'delivery' | 'servicePickup' | 'storePickup'</code>
+
+
+#### ApplePayRecurringPaymentIntervalUnit
+
+<code>'day' | 'week' | 'month' | 'year'</code>
+
+
+#### GooglePayTotalPriceStatus
+
+<code>'NOT_CURRENTLY_KNOWN' | 'ESTIMATED' | 'FINAL' | (string & <a href="#record">Record</a>&lt;never, never&gt;)</code>
 
 </docgen-api>
