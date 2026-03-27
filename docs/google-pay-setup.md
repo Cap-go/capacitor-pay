@@ -2,12 +2,37 @@
 
 Follow this checklist to enable Google Pay for the Android implementation of `@capgo/capacitor-pay`.
 
+The plugin already ships its own Google Pay request and response typings, so you do not need to add `@types/googlepay` unless you separately use Google's web JavaScript client.
+
 ## 1. Requirements
 
 - A Google Play Console account with the correct app package name registered.
 - Access to the Google Pay & Wallet Console using the same Google account.
 - Android Studio Hedgehog (or newer) with the latest Android SDK tools.
 - Test devices running Google Play services.
+
+### Supported card networks
+
+For `allowedCardNetworks` options, the possible values are:
+
+- `AMEX`: American Express card network.
+- `DISCOVER`: Discover card network.
+- `ELECTRON`: Visa's Electron card network.
+  - Note that this option can only be set when `transactionInfo.countryCode` is set to `"BR"`, and `allowedCardNetworks` must also contain `VISA`
+  - For processing purposes, you should use this as an indication that the card must be processed through the Electron debit network.
+- `ELO`: Elo card network.
+  - Note that this option can only be set when `transactionInfo.countryCode` is set to `"BR"`.
+- `ELO_DEBIT`: Elo's debit network rail.
+  - Note that this option can only be set when `transactionInfo.countryCode` is set to `"BR"`, and `allowedCardNetworks` must also contain `ELO`
+  - For processing purposes, you should use this as an indication that the card must be processed through the ELO debit network.
+- `INTERAC`: Interac card network.
+- `JCB`: JCB card network.
+- `MAESTRO`: Maestro card network.
+  - Note that this option can only be set when `transactionInfo.countryCode` is set to `"BR"`, and `allowedCardNetworks` must also contain `MASTERCARD`
+  - For processing purposes, you should use this as an indication that the card must be processed through the Maestro debit network.
+- `MASTERCARD`: Mastercard card network.
+- `VISA`: Visa card network.
+  [Read more about supported card networks in Google Pay.](https://developers.google.com/pay/api/web/reference/request-objects#CardParameters)
 
 ## 2. Create a Google Pay business profile
 
@@ -23,9 +48,8 @@ Follow this checklist to enable Google Pay for the Android implementation of `@c
 Decide between a **gateway** (e.g., Stripe, Adyen, Braintree) or **direct** processor integration:
 
 - For gateway tokenization, collect the `gateway` and `gatewayMerchantId` values.
+  - Refer [Google's documentation](https://developers.google.com/pay/api/android/reference/request-objects#gateway) for the required fields based on your chosen processor and tokenization type.
 - For direct tokenization, create and store your public/private key pair and obtain your processor’s parameters.
-
-Document these values because they must be inserted into the `paymentDataRequest.tokenizationSpecification`.
 
 ## 4. Register test cards and test users
 
@@ -37,8 +61,8 @@ Document these values because they must be inserted into the `paymentDataRequest
 
 Handle the encrypted payment data server-side before charging the customer:
 
-- Receive the JSON payload returned by `Pay.requestPayment`. The `paymentData` object includes the payment method, tokenization type, and gateway payload.
-- Forward the payment token to your payment processor’s SDK over HTTPS. For gateway integrations, pass the `paymentMethodData.tokenizationSpecification.parameters` unchanged.
+- Receive the JSON payload from the resolved `Pay.requestPayment(...)` result. The `paymentData` object includes the payment method, tokenization type, and gateway payload.
+- Forward the payment token to your payment processor's SDK over HTTPS. Read the authorized token from `paymentMethodData.tokenizationData.token`.
 - Validate essential fields (transaction amount, currency, merchant identifiers) against your order database before capturing payment.
 - Log the Google Pay transaction IDs securely for reconciliation and dispute handling; avoid storing full PAN or raw token data.
 
@@ -112,7 +136,7 @@ const result = await Pay.requestPayment({
   },
 });
 
-// Send `result.google?.paymentData` to your backend and use your PSP to start the subscription.
+// Send `result.google.paymentData` to your backend to handle payment on server.
 ```
 
 ## 8. Use the correct environment
@@ -132,12 +156,14 @@ Google Pay itself does not require additional manifest permissions beyond Intern
 1. Build and install the Android app on a device with the sandbox card.
 2. Call `Pay.isPayAvailable` with the same `isReadyToPayRequest` JSON you will use in production.
 3. Confirm the method returns `available: true` and `google.isReady: true`.
-4. Trigger `Pay.requestPayment` and complete a transaction with a test card to verify token payloads.
+4. Trigger `Pay.requestPayment` and complete a transaction with a test card.
+5. Verify the payment token is returned in the resolved `requestPayment()` result and can be processed by your backend.
 
 ## 11. Launch to production
 
 1. Submit your app for Google Play review with Google Pay screenshots or screen recordings if requested.
 2. Promote the business profile to production in the Google Pay & Wallet Console.
-3. Switch the runtime configuration to the production environment and merchant details.
+3. Make sure you handle `requestPayment()` success, cancellation, and errors gracefully in your app.
+4. Switch the runtime configuration to the production environment and merchant details.
 
 Completing these steps prepares your Android app to process payments through Google Pay using the Capacitor plugin.

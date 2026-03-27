@@ -2,6 +2,11 @@ package app.capgo.pay;
 
 import android.app.Activity;
 import android.content.Intent;
+import androidx.activity.ComponentActivity;
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.IntentSenderRequest;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Logger;
@@ -10,6 +15,8 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.google.android.gms.common.api.ApiException;
+import com.google.android.gms.common.api.CommonStatusCodes;
+import com.google.android.gms.common.api.ResolvableApiException;
 import com.google.android.gms.common.api.Status;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.wallet.AutoResolveHelper;
@@ -28,9 +35,21 @@ public class PayPlugin extends Plugin {
 
     private final String pluginVersion = "8.1.1";
 
-    private static final int LOAD_PAYMENT_DATA_REQUEST_CODE = 8001;
+    private boolean paymentInProgress = false;
+    private boolean resolutionInProgress = false;
+    private ActivityResultLauncher<IntentSenderRequest> googlePayLauncher;
+    private PaymentsClient paymentsClient;
+    private int lastEnv = -1;
+    private PluginCall pendingGooglePayCall;
 
-    private PluginCall pendingPaymentCall;
+    @Override
+    public void load() {
+        if (getActivity() == null) {
+            Logger.warn("PayPlugin", "Google Pay launcher unavailable during load(): no active activity.");
+            return;
+        }
+        this.ensureLauncher();
+    }
 
     @PluginMethod
     public void isPayAvailable(PluginCall call) {
@@ -80,8 +99,13 @@ public class PayPlugin extends Plugin {
 
     @PluginMethod
     public void requestPayment(PluginCall call) {
-        if (pendingPaymentCall != null) {
+        if (this.paymentInProgress) {
             call.reject("Another Google Pay request is already in progress.");
+            return;
+        }
+
+        if (!ensureLauncher()) {
+            call.reject("No active activity to start Google Pay.");
             return;
         }
 
@@ -111,77 +135,209 @@ public class PayPlugin extends Plugin {
 
         try {
             PaymentDataRequest request = PaymentDataRequest.fromJson(paymentRequestJson.toString());
-            if (request == null) {
-                call.reject("Invalid `paymentDataRequest`.");
-                return;
-            }
-
-            pendingPaymentCall = call;
-            Task<PaymentData> task = client.loadPaymentData(request);
-            Activity activity = getActivity();
-            if (activity == null) {
-                pendingPaymentCall = null;
-                call.reject("No active activity to present Google Pay.");
-                return;
-            }
-            AutoResolveHelper.resolveTask(task, activity, LOAD_PAYMENT_DATA_REQUEST_CODE);
+            this.paymentInProgress = true;
+            this.pendingGooglePayCall = call;
+            client.loadPaymentData(request).addOnSuccessListener(this::emitAuthorized).addOnFailureListener(this::emitError);
         } catch (Exception ex) {
-            pendingPaymentCall = null;
+            this.paymentInProgress = false;
+            this.pendingGooglePayCall = null;
             call.reject("Failed to launch Google Pay.", ex);
         }
     }
 
-    @Override
-    protected void handleOnActivityResult(int requestCode, int resultCode, Intent data) {
-        super.handleOnActivityResult(requestCode, resultCode, data);
+    private boolean ensureLauncher() {
+        if (googlePayLauncher != null) return true;
 
-        if (requestCode != LOAD_PAYMENT_DATA_REQUEST_CODE) {
-            return;
+        ComponentActivity activity = getActivity();
+        if (activity == null) {
+            return false;
         }
 
-        if (pendingPaymentCall == null) {
-            return;
+        try {
+            googlePayLauncher = activity.registerForActivityResult(
+                new ActivityResultContracts.StartIntentSenderForResult(),
+                this::handleGooglePayResult
+            );
+            return true;
+        } catch (IllegalStateException ex) {
+            Logger.warn("PayPlugin", "Failed to register Google Pay launcher: " + ex.getLocalizedMessage());
+            googlePayLauncher = null;
+            return false;
         }
+    }
 
-        PluginCall call = pendingPaymentCall;
-        pendingPaymentCall = null;
+    private void handleGooglePayResult(ActivityResult activityResult) {
+        resolutionInProgress = false;
+        paymentInProgress = false; // important: user interaction ended
+
+        int resultCode = activityResult.getResultCode();
+        Intent data = activityResult.getData();
+
+        Logger.debug("PayPlugin", "GooglePay resultCode=" + resultCode);
 
         if (resultCode == Activity.RESULT_OK) {
-            if (data == null) {
-                call.reject("Google Pay returned no data.");
-                return;
-            }
+            emitAuthorizedFromIntent(data);
+            return;
+        }
 
-            PaymentData paymentData = PaymentData.getFromIntent(data);
-            if (paymentData == null) {
-                call.reject("Google Pay returned empty payment data.");
-                return;
-            }
+        if (resultCode == Activity.RESULT_CANCELED) {
+            this.emitCancel();
+            return;
+        }
 
-            try {
-                String json = paymentData.toJson();
-                JSONObject paymentDataJson = json != null ? new JSONObject(json) : new JSONObject();
-                JSObject googleResult = new JSObject();
-                googleResult.put("paymentData", JSObject.fromJSONObject(paymentDataJson));
-
-                JSObject result = new JSObject();
-                result.put("platform", "android");
-                result.put("google", googleResult);
-
-                call.resolve(result);
-            } catch (JSONException ex) {
-                call.reject("Failed to parse Google Pay result.", ex);
-            }
-        } else if (resultCode == Activity.RESULT_CANCELED) {
-            call.reject("Payment canceled.");
-        } else if (resultCode == AutoResolveHelper.RESULT_ERROR) {
+        if (resultCode == AutoResolveHelper.RESULT_ERROR) {
             Status status = AutoResolveHelper.getStatusFromIntent(data);
-            String message = status != null && status.getStatusMessage() != null
+            String message = (status != null && status.getStatusMessage() != null)
                 ? status.getStatusMessage()
                 : "Google Pay returned an error.";
-            call.reject(message);
-        } else {
-            call.reject("Unexpected activity result: " + resultCode);
+            this.emitError(new Exception(message), "GOOGLE_PAY_API_ERROR", status);
+            return;
+        }
+
+        String message = "Google Pay returned unexpected result code: " + resultCode;
+        Exception ex = new Exception(message);
+        this.emitError(ex, "UNEXPECTED_ACTIVITY_RESULT");
+    }
+
+    private void emitAuthorizedFromIntent(Intent data) {
+        if (data == null) {
+            Exception ex = new Exception("Google Pay returned no data.");
+            this.emitError(ex, "NO_RESULT_DATA");
+            return;
+        }
+
+        PaymentData paymentData = PaymentData.getFromIntent(data);
+        if (paymentData == null) {
+            Exception ex = new Exception("Google Pay returned empty payment data.");
+            this.emitError(ex, "EMPTY_PAYMENT_DATA");
+            return;
+        }
+
+        emitAuthorized(paymentData);
+    }
+
+    private void emitAuthorized(PaymentData paymentData) {
+        try {
+            String json = paymentData.toJson();
+            JSONObject paymentDataJson = new JSONObject(json);
+
+            JSObject googleResult = new JSObject();
+            googleResult.put("paymentData", JSObject.fromJSONObject(paymentDataJson));
+
+            JSObject result = new JSObject();
+            result.put("platform", "android");
+            result.put("google", googleResult);
+
+            Logger.debug("PayPlugin", "Payment authorized");
+            resolvePendingGooglePayCall(result);
+
+            this.paymentInProgress = false;
+        } catch (JSONException ex) {
+            this.emitError(ex, "PARSE_ERROR");
+        }
+    }
+
+    private void emitError(Exception ex) {
+        this.emitError(ex, null, null);
+    }
+
+    private void emitError(Exception ex, String reason) {
+        this.emitError(ex, reason, null);
+    }
+
+    private void emitError(Exception ex, String reason, @Nullable Status status) {
+        if (ex instanceof ResolvableApiException rae) {
+            if (this.resolutionInProgress) {
+                // don't relaunch; treat as error
+                this.resolutionInProgress = false;
+            } else {
+                this.resolutionInProgress = true;
+                IntentSenderRequest isr = new IntentSenderRequest.Builder(rae.getResolution()).build();
+                googlePayLauncher.launch(isr);
+                return;
+            }
+        }
+
+        this.paymentInProgress = false;
+        this.resolutionInProgress = false;
+
+        JSObject error = new JSObject();
+        String message = ex.getMessage() != null ? ex.getMessage() : "Google Pay failed.";
+
+        if (ex instanceof JSONException) {
+            message = "Failed to parse Google Pay result.";
+        }
+
+        error.put("message", message);
+        error.put("platform", "android");
+        error.put("statusCode", "ERROR");
+        error.put("reason", reason != null ? reason : inferErrorReason(ex));
+
+        Integer googleStatusCode = null;
+        String googleStatusMessage = null;
+        if (status != null) {
+            googleStatusCode = status.getStatusCode();
+            googleStatusMessage = status.getStatusMessage();
+        } else if (ex instanceof ApiException apiException) {
+            googleStatusCode = apiException.getStatusCode();
+            googleStatusMessage = apiException.getStatusMessage();
+        }
+
+        if (googleStatusCode != null) {
+            error.put("googleStatusCode", googleStatusCode);
+            error.put("googleStatusCodeName", CommonStatusCodes.getStatusCodeString(googleStatusCode));
+        }
+        if (googleStatusMessage != null) {
+            error.put("googleStatusMessage", googleStatusMessage);
+        }
+        if (ex instanceof ResolvableApiException) {
+            error.put("resolvable", true);
+        }
+
+        Logger.error("PayPlugin", message, ex);
+        rejectPendingGooglePayCall(message, reason != null ? reason : inferErrorReason(ex), ex, error);
+    }
+
+    private void emitCancel() {
+        this.paymentInProgress = false;
+        JSObject result = new JSObject();
+        String message = "Payment canceled";
+        result.put("message", message);
+        result.put("platform", "android");
+        result.put("statusCode", "CANCELED");
+        result.put("reason", "CANCELED");
+
+        Logger.debug("PayPlugin", message);
+        rejectPendingGooglePayCall(message, "CANCELED", null, result);
+    }
+
+    private String inferErrorReason(Exception ex) {
+        if (ex instanceof JSONException) {
+            return "PARSE_ERROR";
+        }
+        if (ex instanceof ApiException) {
+            return "GOOGLE_PAY_API_ERROR";
+        }
+        return "UNKNOWN";
+    }
+
+    private void resolvePendingGooglePayCall(JSObject result) {
+        PluginCall call = this.pendingGooglePayCall;
+        this.pendingGooglePayCall = null;
+        if (call != null) {
+            call.resolve(result);
+        }
+    }
+
+    private void rejectPendingGooglePayCall(String message, @Nullable String code, @Nullable Exception error, @Nullable JSObject data) {
+        PluginCall call = this.pendingGooglePayCall;
+        this.pendingGooglePayCall = null;
+        if (call != null) {
+            if (error != null) {
+                call.reject(message, code, error, data);
+            } else {
+                call.reject(message, code, data);
+            }
         }
     }
 
@@ -198,8 +354,12 @@ public class PayPlugin extends Plugin {
     }
 
     private PaymentsClient createPaymentsClient(int environment) {
-        Wallet.WalletOptions options = new Wallet.WalletOptions.Builder().setEnvironment(environment).build();
-        return Wallet.getPaymentsClient(getContext(), options);
+        if (paymentsClient == null || lastEnv != environment) {
+            Wallet.WalletOptions options = new Wallet.WalletOptions.Builder().setEnvironment(environment).build();
+            paymentsClient = Wallet.getPaymentsClient(getContext(), options);
+            lastEnv = environment;
+        }
+        return paymentsClient;
     }
 
     private int parseEnvironment(@Nullable String environment) {

@@ -37,6 +37,19 @@ const parseJsonInput = (inputElement, label) => {
   }
 };
 
+const isPaymentCanceled = (error) => {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const pluginError = /** @type {{ code?: string; message?: string; data?: { reason?: string } }} */ (error);
+  return (
+    pluginError.code === 'CANCELED' ||
+    pluginError.data?.reason === 'CANCELED' ||
+    pluginError.message === 'Payment canceled.'
+  );
+};
+
 checkAvailabilityButton?.addEventListener('click', async () => {
   try {
     setStatus('Checking availability...');
@@ -83,10 +96,25 @@ requestPaymentButton?.addEventListener('click', async () => {
     }
 
     const result = await Pay.requestPayment(paymentOptions);
-    setStatus('Payment flow finished');
-    logResult(result);
+
+    setStatus('Payment authorized');
+    logResult({
+      phase: 'requestPayment',
+      result,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+
+    if (isPaymentCanceled(error)) {
+      setStatus('Payment canceled');
+      logResult({
+        phase: 'requestPayment',
+        canceled: true,
+        error,
+      });
+      return;
+    }
+
     setStatus(`Payment failed: ${message}`);
     logResult({ error: message });
   }

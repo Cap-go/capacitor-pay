@@ -22,13 +22,30 @@
         <textarea id="appleAvailability" rows="4">{ "supportedNetworks": ["visa", "masterCard"] }</textarea>
 
         <label for="googleAvailability">Google Options (JSON)</label>
-        <textarea id="googleAvailability" rows="4">{ "environment": "test", "isReadyToPayRequest": { "allowedPaymentMethods": [], "existingPaymentMethodRequired": false } }</textarea>
+        <textarea id="googleAvailability" rows="10">{
+  "environment": "test",
+  "isReadyToPayRequest": {
+    "apiVersion": 2,
+    "apiVersionMinor": 0,
+    "allowedPaymentMethods": [
+      {
+        "type": "CARD",
+        "parameters": {
+          "allowedAuthMethods": ["PAN_ONLY", "CRYPTOGRAM_3DS"],
+          "allowedCardNetworks": ["AMEX", "DISCOVER", "MASTERCARD", "VISA"]
+        }
+      }
+    ],
+    "existingPaymentMethodRequired": false
+  }
+}</textarea>
 
         <button id="checkAvailabilityButton" type="button">Check Availability</button>
       </section>
 
       <section>
         <h2>Request Payment</h2>
+        <p>On Android, Google Pay resolves the final payment result through <code>requestPayment()</code>.</p>
         <label for="applePayment">Apple Pay Options (JSON)</label>
         <textarea id="applePayment" rows="10">{
   "merchantIdentifier": "merchant.com.example",
@@ -47,7 +64,26 @@
   "paymentDataRequest": {
     "apiVersion": 2,
     "apiVersionMinor": 0,
-    "allowedPaymentMethods": [],
+    "allowedPaymentMethods": [
+      {
+        "type": "CARD",
+        "parameters": {
+          "allowedAuthMethods": ["PAN_ONLY", "CRYPTOGRAM_3DS"],
+          "allowedCardNetworks": ["AMEX", "DISCOVER", "MASTERCARD", "VISA"],
+          "billingAddressRequired": true,
+          "billingAddressParameters": {
+            "format": "FULL"
+          }
+        },
+        "tokenizationSpecification": {
+          "type": "PAYMENT_GATEWAY",
+          "parameters": {
+            "gateway": "example",
+            "gatewayMerchantId": "exampleGatewayMerchantId"
+          }
+        }
+      }
+    ],
     "transactionInfo": {
       "totalPriceStatus": "FINAL",
       "totalPrice": "9.99",
