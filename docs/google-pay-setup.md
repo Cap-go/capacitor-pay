@@ -2,6 +2,8 @@
 
 Follow this checklist to enable Google Pay for the Android implementation of `@capgo/capacitor-pay`.
 
+The plugin already ships its own Google Pay request and response typings, so you do not need to add `@types/googlepay` unless you separately use Google's web JavaScript client.
+
 ## 1. Requirements
 
 - A Google Play Console account with the correct app package name registered.
@@ -10,7 +12,9 @@ Follow this checklist to enable Google Pay for the Android implementation of `@c
 - Test devices running Google Play services.
 
 ### Supported card networks
+
 For `allowedCardNetworks` options, the possible values are:
+
 - `AMEX`: American Express card network.
 - `DISCOVER`: Discover card network.
 - `ELECTRON`: Visa's Electron card network.
@@ -28,7 +32,7 @@ For `allowedCardNetworks` options, the possible values are:
   - For processing purposes, you should use this as an indication that the card must be processed through the Maestro debit network.
 - `MASTERCARD`: Mastercard card network.
 - `VISA`: Visa card network.
-[Read more about supported card networks in Google Pay.](https://developers.google.com/pay/api/web/reference/request-objects#CardParameters)
+  [Read more about supported card networks in Google Pay.](https://developers.google.com/pay/api/web/reference/request-objects#CardParameters)
 
 ## 2. Create a Google Pay business profile
 

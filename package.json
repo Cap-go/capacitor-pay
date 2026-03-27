@@ -51,9 +51,6 @@
     "prepublishOnly": "bun run build",
     "check:wiring": "node scripts/check-capacitor-plugin-wiring.mjs"
   },
-  "dependencies": {
-    "@types/googlepay": "^0.7.10"
-  },
   "devDependencies": {
     "@capacitor/android": "^8.0.0",
     "@capacitor/core": "^8.0.0",

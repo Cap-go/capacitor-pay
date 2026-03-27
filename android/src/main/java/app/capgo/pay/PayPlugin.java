@@ -2,7 +2,6 @@ package app.capgo.pay;
 
 import android.app.Activity;
 import android.content.Intent;
-
 import androidx.activity.ComponentActivity;
 import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultLauncher;
@@ -16,6 +15,7 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.google.android.gms.common.api.ApiException;
+import com.google.android.gms.common.api.CommonStatusCodes;
 import com.google.android.gms.common.api.ResolvableApiException;
 import com.google.android.gms.common.api.Status;
 import com.google.android.gms.tasks.Task;
@@ -175,29 +175,31 @@ public class PayPlugin extends Plugin {
             return;
         }
 
-        String message = "Google Pay returned unexpected result code: " + resultCode;
         if (resultCode == AutoResolveHelper.RESULT_ERROR) {
             Status status = AutoResolveHelper.getStatusFromIntent(data);
-            message = (status != null && status.getStatusMessage() != null)
-                    ? status.getStatusMessage()
-                    : "Google Pay returned an error.";
+            String message = (status != null && status.getStatusMessage() != null)
+                ? status.getStatusMessage()
+                : "Google Pay returned an error.";
+            this.emitError(new Exception(message), "GOOGLE_PAY_API_ERROR", status);
+            return;
         }
 
+        String message = "Google Pay returned unexpected result code: " + resultCode;
         Exception ex = new Exception(message);
-        this.emitError(ex);
+        this.emitError(ex, "UNEXPECTED_ACTIVITY_RESULT");
     }
 
     private void emitAuthorizedFromIntent(Intent data) {
         if (data == null) {
             Exception ex = new Exception("Google Pay returned no data.");
-            this.emitError(ex);
+            this.emitError(ex, "NO_RESULT_DATA");
             return;
         }
 
         PaymentData paymentData = PaymentData.getFromIntent(data);
         if (paymentData == null) {
             Exception ex = new Exception("Google Pay returned empty payment data.");
-            this.emitError(ex);
+            this.emitError(ex, "EMPTY_PAYMENT_DATA");
             return;
         }
 
@@ -221,11 +223,19 @@ public class PayPlugin extends Plugin {
 
             this.paymentInProgress = false;
         } catch (JSONException ex) {
-            this.emitError(ex);
+            this.emitError(ex, "PARSE_ERROR");
         }
     }
 
     private void emitError(Exception ex) {
+        this.emitError(ex, null, null);
+    }
+
+    private void emitError(Exception ex, String reason) {
+        this.emitError(ex, reason, null);
+    }
+
+    private void emitError(Exception ex, String reason, @Nullable Status status) {
         if (ex instanceof ResolvableApiException rae) {
             if (this.resolutionInProgress) {
                 // don't relaunch; treat as error
@@ -251,6 +261,28 @@ public class PayPlugin extends Plugin {
         error.put("message", message);
         error.put("platform", "android");
         error.put("statusCode", "ERROR");
+        error.put("reason", reason != null ? reason : inferErrorReason(ex));
+
+        Integer googleStatusCode = null;
+        String googleStatusMessage = null;
+        if (status != null) {
+            googleStatusCode = status.getStatusCode();
+            googleStatusMessage = status.getStatusMessage();
+        } else if (ex instanceof ApiException apiException) {
+            googleStatusCode = apiException.getStatusCode();
+            googleStatusMessage = apiException.getStatusMessage();
+        }
+
+        if (googleStatusCode != null) {
+            error.put("googleStatusCode", googleStatusCode);
+            error.put("googleStatusCodeName", CommonStatusCodes.getStatusCodeString(googleStatusCode));
+        }
+        if (googleStatusMessage != null) {
+            error.put("googleStatusMessage", googleStatusMessage);
+        }
+        if (ex instanceof ResolvableApiException) {
+            error.put("resolvable", true);
+        }
 
         Logger.error("PayPlugin", message, ex);
         notifyListeners("onError", error, true);
@@ -263,9 +295,20 @@ public class PayPlugin extends Plugin {
         result.put("message", message);
         result.put("platform", "android");
         result.put("statusCode", "CANCELED");
+        result.put("reason", "CANCELED");
 
         Logger.debug("PayPlugin", message);
         notifyListeners("onCanceled", result, true);
+    }
+
+    private String inferErrorReason(Exception ex) {
+        if (ex instanceof JSONException) {
+            return "PARSE_ERROR";
+        }
+        if (ex instanceof ApiException) {
+            return "GOOGLE_PAY_API_ERROR";
+        }
+        return "UNKNOWN";
     }
 
     private JSObject buildAvailabilityResult(boolean isReady) {
