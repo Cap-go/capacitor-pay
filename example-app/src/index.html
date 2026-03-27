@@ -45,7 +45,7 @@
 
       <section>
         <h2>Request Payment</h2>
-        <p>On Android, Google Pay completes through the plugin event listeners. The request promise only confirms that the native sheet was launched.</p>
+        <p>On Android, Google Pay resolves the final payment result through <code>requestPayment()</code>.</p>
         <label for="applePayment">Apple Pay Options (JSON)</label>
         <textarea id="applePayment" rows="10">{
   "merchantIdentifier": "merchant.com.example",

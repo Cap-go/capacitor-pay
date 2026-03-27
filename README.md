@@ -110,22 +110,7 @@ if (availability.platform === 'ios') {
   });
   console.log(result.apple?.paymentData);
 } else if (availability.platform === 'android') {
-  await Pay.addListener('onAuthorized', (result) => {
-    console.log('Payment authorized:', result.google.paymentData);
-    // Process the payment token on your backend server here.
-  });
-
-  await Pay.addListener('onCanceled', (result) => {
-    console.log('Payment canceled by user', result);
-    // Handle the cancellation gracefully in your UI.
-  });
-
-  await Pay.addListener('onError', (error) => {
-    console.error('Payment error:', error);
-    // Handle the error gracefully in your UI.
-  });
-
-  await Pay.requestPayment({
+  const result = await Pay.requestPayment({
     google: {
       environment: 'test',
       paymentDataRequest: {
@@ -164,6 +149,9 @@ if (availability.platform === 'ios') {
       },
     },
   });
+
+  console.log(result.google.paymentData);
+  // Process the payment token on your backend server here.
 }
 ```
 
@@ -238,17 +226,17 @@ const paymentDataRequest: GooglePayPaymentDataRequest = {
   },
 };
 
-await Pay.addListener('onAuthorized', ({ google }) => {
-  // Send `google.paymentData` to your backend and use your PSP to start the subscription.
-});
-
-await Pay.requestPayment({
+const result = await Pay.requestPayment({
   google: {
     environment: 'test',
     paymentDataRequest,
   },
 });
+
+// Send `result.google.paymentData` to your backend and use your PSP to start the subscription.
 ```
+
+`requestPayment()` is the completion path on both platforms.
 
 ## API
 
@@ -257,10 +245,6 @@ await Pay.requestPayment({
 * [`isPayAvailable(...)`](#ispayavailable)
 * [`requestPayment(...)`](#requestpayment)
 * [`getPluginVersion()`](#getpluginversion)
-* [`addListener('onAuthorized', ...)`](#addlisteneronauthorized-)
-* [`addListener('onCanceled', ...)`](#addlisteneroncanceled-)
-* [`addListener('onError', ...)`](#addlisteneronerror-)
-* [`removeAllListeners()`](#removealllisteners)
 * [Interfaces](#interfaces)
 * [Type Aliases](#type-aliases)
 
@@ -296,6 +280,8 @@ requestPayment(options: PayPaymentOptions) => Promise<PayPaymentResult>
 Presents the native pay sheet for the current platform.
 Provide the Apple Pay configuration on iOS and the Google Pay configuration on Android.
 
+This promise is the completion path on both platforms.
+
 | Param         | Type                                                            |
 | ------------- | --------------------------------------------------------------- |
 | **`options`** | <code><a href="#paypaymentoptions">PayPaymentOptions</a></code> |
@@ -314,77 +300,6 @@ getPluginVersion() => Promise<{ version: string; }>
 Get the native Capacitor plugin version
 
 **Returns:** <code>Promise&lt;{ version: string; }&gt;</code>
-
---------------------
-
-
-### addListener('onAuthorized', ...)
-
-```typescript
-addListener(eventName: 'onAuthorized', listenerFunc: (result: GooglePayAuthorizedEvent) => void) => Promise<PluginListenerHandle>
-```
-
-Add event listener for Google Pay authorized payments.
-
-Works only on Google Pay.
-
-| Param              | Type                                                                                               |
-| ------------------ | -------------------------------------------------------------------------------------------------- |
-| **`eventName`**    | <code>'onAuthorized'</code>                                                                        |
-| **`listenerFunc`** | <code>(result: <a href="#googlepayauthorizedevent">GooglePayAuthorizedEvent</a>) =&gt; void</code> |
-
-**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
-
---------------------
-
-
-### addListener('onCanceled', ...)
-
-```typescript
-addListener(eventName: 'onCanceled', listenerFunc: (result: GooglePayCanceledEvent) => void) => Promise<PluginListenerHandle>
-```
-
-Add event listener for Google Pay canceled payments.
-
-Works only on Google Pay.
-
-| Param              | Type                                                                                           |
-| ------------------ | ---------------------------------------------------------------------------------------------- |
-| **`eventName`**    | <code>'onCanceled'</code>                                                                      |
-| **`listenerFunc`** | <code>(result: <a href="#googlepaycanceledevent">GooglePayCanceledEvent</a>) =&gt; void</code> |
-
-**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
-
---------------------
-
-
-### addListener('onError', ...)
-
-```typescript
-addListener(eventName: 'onError', listenerFunc: (error: GooglePayErrorEvent) => void) => Promise<PluginListenerHandle>
-```
-
-Add event listener for Google Pay errors.
-
-Works only on Google Pay.
-
-| Param              | Type                                                                                    |
-| ------------------ | --------------------------------------------------------------------------------------- |
-| **`eventName`**    | <code>'onError'</code>                                                                  |
-| **`listenerFunc`** | <code>(error: <a href="#googlepayerrorevent">GooglePayErrorEvent</a>) =&gt; void</code> |
-
-**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
-
---------------------
-
-
-### removeAllListeners()
-
-```typescript
-removeAllListeners() => Promise<void>
-```
-
-Remove all the listeners that are attached to this plugin.
 
 --------------------
 
@@ -573,9 +488,98 @@ Tokenization parameters for `PAYMENT_GATEWAY` tokenization, which sends the paym
 
 #### GooglePayRequestPaymentResult
 
-| Prop           | Type                   | Description                                 |
-| -------------- | ---------------------- | ------------------------------------------- |
-| **`platform`** | <code>'android'</code> | Platform that resolved the payment request. |
+| Prop           | Type                                                                      | Description                                 |
+| -------------- | ------------------------------------------------------------------------- | ------------------------------------------- |
+| **`platform`** | <code>'android'</code>                                                    | Platform that resolved the payment request. |
+| **`google`**   | <code><a href="#googlepaypaymentresult">GooglePayPaymentResult</a></code> | Google Pay payment payload.                 |
+
+
+#### GooglePayPaymentResult
+
+| Prop              | Type                                                                  | Description                          |
+| ----------------- | --------------------------------------------------------------------- | ------------------------------------ |
+| **`paymentData`** | <code><a href="#googlepaypaymentdata">GooglePayPaymentData</a></code> | Payment data returned by Google Pay. |
+
+
+#### GooglePayPaymentData
+
+| Prop                     | Type                                                                                  | Description                                                    |
+| ------------------------ | ------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| **`apiVersion`**         | <code>number</code>                                                                   | Google Pay API major version returned in the response.         |
+| **`apiVersionMinor`**    | <code>number</code>                                                                   | Google Pay API minor version returned in the response.         |
+| **`email`**              | <code>string</code>                                                                   | Buyer email address when `emailRequired` was requested.        |
+| **`shippingAddress`**    | <code><a href="#googlepayaddress">GooglePayAddress</a></code>                         | Shipping address when `shippingAddressRequired` was requested. |
+| **`paymentMethodData`**  | <code><a href="#googlepaypaymentmethoddata">GooglePayPaymentMethodData</a></code>     | Selected payment method details and tokenized payload.         |
+| **`offerData`**          | <code><a href="#googlepayofferdata">GooglePayOfferData</a></code>                     | Offer redemption data when an offer was applied.               |
+| **`shippingOptionData`** | <code><a href="#googlepayselectionoptiondata">GooglePaySelectionOptionData</a></code> | Selected shipping option data when shipping options were used. |
+
+
+#### GooglePayAddress
+
+| Prop                            | Type                | Description                                                                         |
+| ------------------------------- | ------------------- | ----------------------------------------------------------------------------------- |
+| **`name`**                      | <code>string</code> | Recipient or cardholder name.                                                       |
+| **`address1`**                  | <code>string</code> | First address line.                                                                 |
+| **`address2`**                  | <code>string</code> | Second address line.                                                                |
+| **`address3`**                  | <code>string</code> | Third address line.                                                                 |
+| **`locality`**                  | <code>string</code> | City or locality.                                                                   |
+| **`administrativeArea`**        | <code>string</code> | State, province, or other administrative area.                                      |
+| **`countryCode`**               | <code>string</code> | Two-letter ISO 3166-1 alpha-2 country code.                                         |
+| **`postalCode`**                | <code>string</code> | Postal or ZIP code.                                                                 |
+| **`sortingCode`**               | <code>string</code> | Sorting code used in some countries.                                                |
+| **`phoneNumber`**               | <code>string</code> | Phone number returned when it was requested.                                        |
+| **`iso3166AdministrativeArea`** | <code>string</code> | ISO 3166-2 code for the administrative area when `FULL-ISO3166` formatting is used. |
+
+
+#### GooglePayPaymentMethodData
+
+| Prop                   | Type                                                                                                      | Description                                                   |
+| ---------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| **`type`**             | <code><a href="#googlepaypaymentmethodtype">GooglePayPaymentMethodType</a></code>                         | Payment method type returned by Google Pay.                   |
+| **`info`**             | <code><a href="#googlepaycardinfo">GooglePayCardInfo</a></code>                                           | Additional information about the selected card.               |
+| **`description`**      | <code>string</code>                                                                                       | User-facing description of the selected funding source.       |
+| **`tokenizationData`** | <code><a href="#googlepaypaymentmethodtokenizationdata">GooglePayPaymentMethodTokenizationData</a></code> | Tokenized payment data you send to your backend or processor. |
+
+
+#### GooglePayCardInfo
+
+| Prop                    | Type                                                                              | Description                                                                        |
+| ----------------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| **`assuranceDetails`**  | <code><a href="#googlepayassurancedetails">GooglePayAssuranceDetails</a></code>   | Optional assurance details returned when `assuranceDetailsRequired` was requested. |
+| **`cardNetwork`**       | <code><a href="#googlepaycardnetwork">GooglePayCardNetwork</a></code>             | Card network for the selected payment method.                                      |
+| **`cardDetails`**       | <code>string</code>                                                               | Card details, typically the last four digits.                                      |
+| **`billingAddress`**    | <code><a href="#googlepayaddress">GooglePayAddress</a></code>                     | Billing address returned when `billingAddressRequired` was requested.              |
+| **`cardFundingSource`** | <code><a href="#googlepaycardfundingsource">GooglePayCardFundingSource</a></code> | Funding source for the selected card when available.                               |
+
+
+#### GooglePayAssuranceDetails
+
+| Prop                          | Type                 | Description                                                                    |
+| ----------------------------- | -------------------- | ------------------------------------------------------------------------------ |
+| **`accountVerified`**         | <code>boolean</code> | Whether Google verified account possession for the selected card.              |
+| **`cardHolderAuthenticated`** | <code>boolean</code> | Whether cardholder authentication or ID&V was completed for the selected card. |
+
+
+#### GooglePayPaymentMethodTokenizationData
+
+| Prop        | Type                                                                            | Description                                             |
+| ----------- | ------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| **`type`**  | <code><a href="#googlepaytokenizationtype">GooglePayTokenizationType</a></code> | Tokenization type used for the selected payment method. |
+| **`token`** | <code>string</code>                                                             | Serialized payment token or gateway payload.            |
+
+
+#### GooglePayOfferData
+
+| Prop                  | Type                  | Description                                  |
+| --------------------- | --------------------- | -------------------------------------------- |
+| **`redemptionCodes`** | <code>string[]</code> | Offer redemption codes applied by the buyer. |
+
+
+#### GooglePaySelectionOptionData
+
+| Prop     | Type                | Description                        |
+| -------- | ------------------- | ---------------------------------- |
+| **`id`** | <code>string</code> | Identifier of the selected option. |
 
 
 #### PayPaymentOptions
@@ -749,136 +753,6 @@ so consumers do not need to install `@types/googlepay`.
 | **`description`** | <code>string</code> | Optional secondary description shown under the label. |
 
 
-#### PluginListenerHandle
-
-| Prop         | Type                                      |
-| ------------ | ----------------------------------------- |
-| **`remove`** | <code>() =&gt; Promise&lt;void&gt;</code> |
-
-
-#### GooglePayAuthorizedEvent
-
-| Prop           | Type                                                                      | Description                                           |
-| -------------- | ------------------------------------------------------------------------- | ----------------------------------------------------- |
-| **`platform`** | <code>'android'</code>                                                    | Platform that emitted the authorized payment payload. |
-| **`google`**   | <code><a href="#googlepaypaymentresult">GooglePayPaymentResult</a></code> | Authorized Google Pay payload.                        |
-
-
-#### GooglePayPaymentResult
-
-| Prop              | Type                                                                  | Description                          |
-| ----------------- | --------------------------------------------------------------------- | ------------------------------------ |
-| **`paymentData`** | <code><a href="#googlepaypaymentdata">GooglePayPaymentData</a></code> | Payment data returned by Google Pay. |
-
-
-#### GooglePayPaymentData
-
-| Prop                     | Type                                                                                  | Description                                                    |
-| ------------------------ | ------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| **`apiVersion`**         | <code>number</code>                                                                   | Google Pay API major version returned in the response.         |
-| **`apiVersionMinor`**    | <code>number</code>                                                                   | Google Pay API minor version returned in the response.         |
-| **`email`**              | <code>string</code>                                                                   | Buyer email address when `emailRequired` was requested.        |
-| **`shippingAddress`**    | <code><a href="#googlepayaddress">GooglePayAddress</a></code>                         | Shipping address when `shippingAddressRequired` was requested. |
-| **`paymentMethodData`**  | <code><a href="#googlepaypaymentmethoddata">GooglePayPaymentMethodData</a></code>     | Selected payment method details and tokenized payload.         |
-| **`offerData`**          | <code><a href="#googlepayofferdata">GooglePayOfferData</a></code>                     | Offer redemption data when an offer was applied.               |
-| **`shippingOptionData`** | <code><a href="#googlepayselectionoptiondata">GooglePaySelectionOptionData</a></code> | Selected shipping option data when shipping options were used. |
-
-
-#### GooglePayAddress
-
-| Prop                            | Type                | Description                                                                         |
-| ------------------------------- | ------------------- | ----------------------------------------------------------------------------------- |
-| **`name`**                      | <code>string</code> | Recipient or cardholder name.                                                       |
-| **`address1`**                  | <code>string</code> | First address line.                                                                 |
-| **`address2`**                  | <code>string</code> | Second address line.                                                                |
-| **`address3`**                  | <code>string</code> | Third address line.                                                                 |
-| **`locality`**                  | <code>string</code> | City or locality.                                                                   |
-| **`administrativeArea`**        | <code>string</code> | State, province, or other administrative area.                                      |
-| **`countryCode`**               | <code>string</code> | Two-letter ISO 3166-1 alpha-2 country code.                                         |
-| **`postalCode`**                | <code>string</code> | Postal or ZIP code.                                                                 |
-| **`sortingCode`**               | <code>string</code> | Sorting code used in some countries.                                                |
-| **`phoneNumber`**               | <code>string</code> | Phone number returned when it was requested.                                        |
-| **`iso3166AdministrativeArea`** | <code>string</code> | ISO 3166-2 code for the administrative area when `FULL-ISO3166` formatting is used. |
-
-
-#### GooglePayPaymentMethodData
-
-| Prop                   | Type                                                                                                      | Description                                                   |
-| ---------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| **`type`**             | <code><a href="#googlepaypaymentmethodtype">GooglePayPaymentMethodType</a></code>                         | Payment method type returned by Google Pay.                   |
-| **`info`**             | <code><a href="#googlepaycardinfo">GooglePayCardInfo</a></code>                                           | Additional information about the selected card.               |
-| **`description`**      | <code>string</code>                                                                                       | User-facing description of the selected funding source.       |
-| **`tokenizationData`** | <code><a href="#googlepaypaymentmethodtokenizationdata">GooglePayPaymentMethodTokenizationData</a></code> | Tokenized payment data you send to your backend or processor. |
-
-
-#### GooglePayCardInfo
-
-| Prop                    | Type                                                                              | Description                                                                        |
-| ----------------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| **`assuranceDetails`**  | <code><a href="#googlepayassurancedetails">GooglePayAssuranceDetails</a></code>   | Optional assurance details returned when `assuranceDetailsRequired` was requested. |
-| **`cardNetwork`**       | <code><a href="#googlepaycardnetwork">GooglePayCardNetwork</a></code>             | Card network for the selected payment method.                                      |
-| **`cardDetails`**       | <code>string</code>                                                               | Card details, typically the last four digits.                                      |
-| **`billingAddress`**    | <code><a href="#googlepayaddress">GooglePayAddress</a></code>                     | Billing address returned when `billingAddressRequired` was requested.              |
-| **`cardFundingSource`** | <code><a href="#googlepaycardfundingsource">GooglePayCardFundingSource</a></code> | Funding source for the selected card when available.                               |
-
-
-#### GooglePayAssuranceDetails
-
-| Prop                          | Type                 | Description                                                                    |
-| ----------------------------- | -------------------- | ------------------------------------------------------------------------------ |
-| **`accountVerified`**         | <code>boolean</code> | Whether Google verified account possession for the selected card.              |
-| **`cardHolderAuthenticated`** | <code>boolean</code> | Whether cardholder authentication or ID&V was completed for the selected card. |
-
-
-#### GooglePayPaymentMethodTokenizationData
-
-| Prop        | Type                                                                            | Description                                             |
-| ----------- | ------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| **`type`**  | <code><a href="#googlepaytokenizationtype">GooglePayTokenizationType</a></code> | Tokenization type used for the selected payment method. |
-| **`token`** | <code>string</code>                                                             | Serialized payment token or gateway payload.            |
-
-
-#### GooglePayOfferData
-
-| Prop                  | Type                  | Description                                  |
-| --------------------- | --------------------- | -------------------------------------------- |
-| **`redemptionCodes`** | <code>string[]</code> | Offer redemption codes applied by the buyer. |
-
-
-#### GooglePaySelectionOptionData
-
-| Prop     | Type                | Description                        |
-| -------- | ------------------- | ---------------------------------- |
-| **`id`** | <code>string</code> | Identifier of the selected option. |
-
-
-#### GooglePayCanceledEvent
-
-| Prop                       | Type                    | Description                                                   |
-| -------------------------- | ----------------------- | ------------------------------------------------------------- |
-| **`platform`**             | <code>'android'</code>  | Platform that emitted the Google Pay event.                   |
-| **`statusCode`**           | <code>'CANCELED'</code> | Normalized plugin status code for cancellations.              |
-| **`message`**              | <code>string</code>     | Human-readable cancellation message.                          |
-| **`reason`**               | <code>'CANCELED'</code> | Normalized cancellation reason.                               |
-| **`googleStatusCode`**     | <code>number</code>     | Google Play services status code when Google provided one.    |
-| **`googleStatusCodeName`** | <code>string</code>     | Name for the Google Play services status code when available. |
-| **`googleStatusMessage`**  | <code>string</code>     | Raw Google status message when available.                     |
-
-
-#### GooglePayErrorEvent
-
-| Prop                       | Type                                                                              | Description                                                      |
-| -------------------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| **`platform`**             | <code>'android'</code>                                                            | Platform that emitted the Google Pay event.                      |
-| **`statusCode`**           | <code>'ERROR'</code>                                                              | Normalized plugin status code for Google Pay errors.             |
-| **`message`**              | <code>string</code>                                                               | Human-readable error message.                                    |
-| **`reason`**               | <code><a href="#googlepaypluginerrorreason">GooglePayPluginErrorReason</a></code> | Normalized plugin reason describing where the failure came from. |
-| **`googleStatusCode`**     | <code>number</code>                                                               | Google Play services status code when Google provided one.       |
-| **`googleStatusCodeName`** | <code>string</code>                                                               | Name for the Google Play services status code when available.    |
-| **`googleStatusMessage`**  | <code>string</code>                                                               | Raw Google status message when available.                        |
-| **`resolvable`**           | <code>boolean</code>                                                              | Whether Google Play services reported the error as resolvable.   |
-
-
 ### Type Aliases
 
 
@@ -939,6 +813,11 @@ Construct a type with a set of properties K of type T
 <code><a href="#applepayrequestpaymentresult">ApplePayRequestPaymentResult</a> | <a href="#googlepayrequestpaymentresult">GooglePayRequestPaymentResult</a></code>
 
 
+#### GooglePayCardFundingSource
+
+<code>'UNKNOWN' | 'CREDIT' | 'DEBIT' | 'PREPAID' | (string & <a href="#record">Record</a>&lt;never, never&gt;)</code>
+
+
 #### ApplePaySummaryItemType
 
 <code>'final' | 'pending'</code>
@@ -992,15 +871,5 @@ Construct a type with a set of properties K of type T
 #### GooglePayCallbackIntent
 
 <code>'OFFER' | 'PAYMENT_AUTHORIZATION' | 'SHIPPING_ADDRESS' | 'SHIPPING_OPTION' | 'PAYMENT_METHOD' | (string & <a href="#record">Record</a>&lt;never, never&gt;)</code>
-
-
-#### GooglePayCardFundingSource
-
-<code>'UNKNOWN' | 'CREDIT' | 'DEBIT' | 'PREPAID' | (string & <a href="#record">Record</a>&lt;never, never&gt;)</code>
-
-
-#### GooglePayPluginErrorReason
-
-<code>'CANCELED' | 'EMPTY_PAYMENT_DATA' | 'GOOGLE_PAY_API_ERROR' | 'NO_RESULT_DATA' | 'PARSE_ERROR' | 'UNEXPECTED_ACTIVITY_RESULT' | 'UNKNOWN' | (string & <a href="#record">Record</a>&lt;never, never&gt;)</code>
 
 </docgen-api>

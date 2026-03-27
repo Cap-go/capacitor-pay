@@ -1,5 +1,3 @@
-import type { PluginListenerHandle } from '@capacitor/core';
-
 export type PayPlatform = 'ios' | 'android' | 'web';
 
 export type ApplePayNetwork =
@@ -936,95 +934,6 @@ export interface GooglePayPaymentResult {
   paymentData: GooglePayPaymentData;
 }
 
-export type GooglePayPluginStatusCode = 'CANCELED' | 'ERROR';
-
-export type GooglePayPluginErrorReason =
-  | 'CANCELED'
-  | 'EMPTY_PAYMENT_DATA'
-  | 'GOOGLE_PAY_API_ERROR'
-  | 'NO_RESULT_DATA'
-  | 'PARSE_ERROR'
-  | 'UNEXPECTED_ACTIVITY_RESULT'
-  | 'UNKNOWN'
-  | (string & Record<never, never>);
-
-export interface GooglePayAuthorizedEvent {
-  /**
-   * Platform that emitted the authorized payment payload.
-   */
-  platform: 'android';
-  /**
-   * Authorized Google Pay payload.
-   */
-  google: GooglePayPaymentResult;
-}
-
-export interface GooglePayCanceledEvent {
-  /**
-   * Platform that emitted the Google Pay event.
-   */
-  platform: 'android';
-  /**
-   * Normalized plugin status code for cancellations.
-   */
-  statusCode: 'CANCELED';
-  /**
-   * Human-readable cancellation message.
-   */
-  message: string;
-  /**
-   * Normalized cancellation reason.
-   */
-  reason: 'CANCELED';
-  /**
-   * Google Play services status code when Google provided one.
-   */
-  googleStatusCode?: number;
-  /**
-   * Name for the Google Play services status code when available.
-   */
-  googleStatusCodeName?: string;
-  /**
-   * Raw Google status message when available.
-   */
-  googleStatusMessage?: string;
-}
-
-export interface GooglePayErrorEvent {
-  /**
-   * Platform that emitted the Google Pay event.
-   */
-  platform: 'android';
-  /**
-   * Normalized plugin status code for Google Pay errors.
-   */
-  statusCode: 'ERROR';
-  /**
-   * Human-readable error message.
-   */
-  message: string;
-  /**
-   * Normalized plugin reason describing where the failure came from.
-   */
-  reason: GooglePayPluginErrorReason;
-  /**
-   * Google Play services status code when Google provided one.
-   */
-  googleStatusCode?: number;
-  /**
-   * Name for the Google Play services status code when available.
-   */
-  googleStatusCodeName?: string;
-  /**
-   * Raw Google status message when available.
-   */
-  googleStatusMessage?: string;
-  /**
-   * Whether Google Play services reported the error as resolvable.
-   */
-  resolvable?: boolean;
-}
-
 export interface PayAvailabilityOptions {
   apple?: ApplePayAvailabilityOptions;
   google?: GooglePayAvailabilityOptions;
@@ -1058,6 +967,10 @@ export interface GooglePayRequestPaymentResult {
    * Platform that resolved the payment request.
    */
   platform: 'android';
+  /**
+   * Google Pay payment payload.
+   */
+  google: GooglePayPaymentResult;
 }
 
 export type PayPaymentResult = ApplePayRequestPaymentResult | GooglePayRequestPaymentResult;
@@ -1071,6 +984,8 @@ export interface PayPlugin {
   /**
    * Presents the native pay sheet for the current platform.
    * Provide the Apple Pay configuration on iOS and the Google Pay configuration on Android.
+   *
+   * This promise is the completion path on both platforms.
    */
   requestPayment(options: PayPaymentOptions): Promise<PayPaymentResult>;
 
@@ -1081,36 +996,4 @@ export interface PayPlugin {
    * @throws An error if the something went wrong
    */
   getPluginVersion(): Promise<{ version: string }>;
-
-  /**
-   * Add event listener for Google Pay authorized payments.
-   *
-   * Works only on Google Pay.
-   */
-  addListener(
-    eventName: 'onAuthorized',
-    listenerFunc: (result: GooglePayAuthorizedEvent) => void,
-  ): Promise<PluginListenerHandle>;
-
-  /**
-   * Add event listener for Google Pay canceled payments.
-   *
-   * Works only on Google Pay.
-   */
-  addListener(
-    eventName: 'onCanceled',
-    listenerFunc: (result: GooglePayCanceledEvent) => void,
-  ): Promise<PluginListenerHandle>;
-
-  /**
-   * Add event listener for Google Pay errors.
-   *
-   * Works only on Google Pay.
-   */
-  addListener(eventName: 'onError', listenerFunc: (error: GooglePayErrorEvent) => void): Promise<PluginListenerHandle>;
-
-  /**
-   * Remove all the listeners that are attached to this plugin.
-   */
-  removeAllListeners(): Promise<void>;
 }

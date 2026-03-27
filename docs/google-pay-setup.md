@@ -48,9 +48,8 @@ For `allowedCardNetworks` options, the possible values are:
 Decide between a **gateway** (e.g., Stripe, Adyen, Braintree) or **direct** processor integration:
 
 - For gateway tokenization, collect the `gateway` and `gatewayMerchantId` values.
+  - Refer [Google's documentation](https://developers.google.com/pay/api/android/reference/request-objects#gateway) for the required fields based on your chosen processor and tokenization type.
 - For direct tokenization, create and store your public/private key pair and obtain your processor’s parameters.
-
-Document these values because they must be inserted into the `paymentDataRequest.tokenizationSpecification`. Refer [Google's documentation](https://developers.google.com/pay/api/android/reference/request-objects#gateway) for the required fields based on your chosen processor and tokenization type.
 
 ## 4. Register test cards and test users
 
@@ -62,8 +61,8 @@ Document these values because they must be inserted into the `paymentDataRequest
 
 Handle the encrypted payment data server-side before charging the customer:
 
-- Receive the JSON payload from the `onAuthorized` listener after `Pay.requestPayment`. The `paymentData` object includes the payment method, tokenization type, and gateway payload.
-- Forward the payment token to your payment processor's SDK over HTTPS. For gateway integrations, pass the `paymentMethodData.tokenizationSpecification.parameters` unchanged.
+- Receive the JSON payload from the resolved `Pay.requestPayment(...)` result. The `paymentData` object includes the payment method, tokenization type, and gateway payload.
+- Forward the payment token to your payment processor's SDK over HTTPS. Read the authorized token from `paymentMethodData.tokenizationData.token`.
 - Validate essential fields (transaction amount, currency, merchant identifiers) against your order database before capturing payment.
 - Log the Google Pay transaction IDs securely for reconciliation and dispute handling; avoid storing full PAN or raw token data.
 
@@ -130,24 +129,14 @@ const paymentDataRequest: GooglePayPaymentDataRequest = {
   },
 };
 
-await Pay.addListener('onAuthorized', (results) => {
-  // Send `google.paymentData` to your backend to handle payment on server.
-});
-
-await Pay.addListener('onCanceled', (results) => {
-  // Handle payment cancellation.
-});
-
-await Pay.addListener('onError', (results) => {
-  // Handle payment error.
-});
-
-await Pay.requestPayment({
+const result = await Pay.requestPayment({
   google: {
     environment: 'test',
     paymentDataRequest,
   },
 });
+
+// Send `result.google.paymentData` to your backend to handle payment on server.
 ```
 
 ## 8. Use the correct environment
@@ -167,15 +156,14 @@ Google Pay itself does not require additional manifest permissions beyond Intern
 1. Build and install the Android app on a device with the sandbox card.
 2. Call `Pay.isPayAvailable` with the same `isReadyToPayRequest` JSON you will use in production.
 3. Confirm the method returns `available: true` and `google.isReady: true`.
-4. Add event listeners for `onAuthorized`, `onCanceled`, and `onError` to handle different Google Pay results.
-5. Trigger `Pay.requestPayment` and complete a transaction with a test card.
-6. Verify the payment token is received by `onAuthorized` event and can be processed by your backend.
+4. Trigger `Pay.requestPayment` and complete a transaction with a test card.
+5. Verify the payment token is returned in the resolved `requestPayment()` result and can be processed by your backend.
 
 ## 11. Launch to production
 
 1. Submit your app for Google Play review with Google Pay screenshots or screen recordings if requested.
 2. Promote the business profile to production in the Google Pay & Wallet Console.
-3. Make sure you handle all Google Pay events (`onAuthorized` and `onCanceled`) and errors (`onError`) gracefully in your app.
+3. Make sure you handle `requestPayment()` success, cancellation, and errors gracefully in your app.
 4. Switch the runtime configuration to the production environment and merchant details.
 
 Completing these steps prepares your Android app to process payments through Google Pay using the Capacitor plugin.

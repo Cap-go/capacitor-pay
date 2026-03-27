@@ -40,6 +40,7 @@ public class PayPlugin extends Plugin {
     private ActivityResultLauncher<IntentSenderRequest> googlePayLauncher;
     private PaymentsClient paymentsClient;
     private int lastEnv = -1;
+    private PluginCall pendingGooglePayCall;
 
     @Override
     public void load() {
@@ -131,12 +132,11 @@ public class PayPlugin extends Plugin {
         try {
             PaymentDataRequest request = PaymentDataRequest.fromJson(paymentRequestJson.toString());
             this.paymentInProgress = true;
+            this.pendingGooglePayCall = call;
             client.loadPaymentData(request).addOnSuccessListener(this::emitAuthorized).addOnFailureListener(this::emitError);
-            JSObject result = new JSObject();
-            result.put("platform", "android");
-            call.resolve(result);
         } catch (Exception ex) {
             this.paymentInProgress = false;
+            this.pendingGooglePayCall = null;
             call.reject("Failed to launch Google Pay.", ex);
         }
     }
@@ -219,7 +219,7 @@ public class PayPlugin extends Plugin {
             result.put("google", googleResult);
 
             Logger.debug("PayPlugin", "Payment authorized");
-            notifyListeners("onAuthorized", result, true);
+            resolvePendingGooglePayCall(result);
 
             this.paymentInProgress = false;
         } catch (JSONException ex) {
@@ -285,7 +285,7 @@ public class PayPlugin extends Plugin {
         }
 
         Logger.error("PayPlugin", message, ex);
-        notifyListeners("onError", error, true);
+        rejectPendingGooglePayCall(message, reason != null ? reason : inferErrorReason(ex), ex, error);
     }
 
     private void emitCancel() {
@@ -298,7 +298,7 @@ public class PayPlugin extends Plugin {
         result.put("reason", "CANCELED");
 
         Logger.debug("PayPlugin", message);
-        notifyListeners("onCanceled", result, true);
+        rejectPendingGooglePayCall(message, "CANCELED", null, result);
     }
 
     private String inferErrorReason(Exception ex) {
@@ -309,6 +309,31 @@ public class PayPlugin extends Plugin {
             return "GOOGLE_PAY_API_ERROR";
         }
         return "UNKNOWN";
+    }
+
+    private void resolvePendingGooglePayCall(JSObject result) {
+        PluginCall call = this.pendingGooglePayCall;
+        this.pendingGooglePayCall = null;
+        if (call != null) {
+            call.resolve(result);
+        }
+    }
+
+    private void rejectPendingGooglePayCall(
+        String message,
+        @Nullable String code,
+        @Nullable Exception error,
+        @Nullable JSObject data
+    ) {
+        PluginCall call = this.pendingGooglePayCall;
+        this.pendingGooglePayCall = null;
+        if (call != null) {
+            if (error != null) {
+                call.reject(message, code, error, data);
+            } else {
+                call.reject(message, code, data);
+            }
+        }
     }
 
     private JSObject buildAvailabilityResult(boolean isReady) {
