@@ -44,6 +44,10 @@ public class PayPlugin extends Plugin {
 
     @Override
     public void load() {
+        if (getActivity() == null) {
+            Logger.warn("PayPlugin", "Google Pay launcher unavailable during load(): no active activity.");
+            return;
+        }
         this.ensureLauncher();
     }
 
@@ -149,11 +153,17 @@ public class PayPlugin extends Plugin {
             return false;
         }
 
-        googlePayLauncher = activity.registerForActivityResult(
-            new ActivityResultContracts.StartIntentSenderForResult(),
-            this::handleGooglePayResult
-        );
-        return true;
+        try {
+            googlePayLauncher = activity.registerForActivityResult(
+                new ActivityResultContracts.StartIntentSenderForResult(),
+                this::handleGooglePayResult
+            );
+            return true;
+        } catch (IllegalStateException ex) {
+            Logger.warn("PayPlugin", "Failed to register Google Pay launcher: " + ex.getLocalizedMessage());
+            googlePayLauncher = null;
+            return false;
+        }
     }
 
     private void handleGooglePayResult(ActivityResult activityResult) {
