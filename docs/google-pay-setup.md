@@ -50,7 +50,7 @@ Decide between a **gateway** (e.g., Stripe, Adyen, Braintree) or **direct** proc
 - For gateway tokenization, collect the `gateway` and `gatewayMerchantId` values.
 - For direct tokenization, create and store your public/private key pair and obtain your processor’s parameters.
 
-Document these values because they must be inserted into the `paymentDataRequest.tokenizationSpecification`.
+Document these values because they must be inserted into the `paymentDataRequest.tokenizationSpecification`. Refer [Google's documentation](https://developers.google.com/pay/api/android/reference/request-objects#gateway) for the required fields based on your chosen processor and tokenization type.
 
 ## 4. Register test cards and test users
 
@@ -130,8 +130,16 @@ const paymentDataRequest: GooglePayPaymentDataRequest = {
   },
 };
 
-await Pay.addListener('onAuthorized', ({ google }) => {
-  // Send `google.paymentData` to your backend and use your PSP to start the subscription.
+await Pay.addListener('onAuthorized', (results) => {
+  // Send `google.paymentData` to your backend to handle payment on server.
+});
+
+await Pay.addListener('onCanceled', (results) => {
+  // Handle payment cancellation.
+});
+
+await Pay.addListener('onError', (results) => {
+  // Handle payment error.
 });
 
 await Pay.requestPayment({

@@ -10,6 +10,7 @@ const requestPaymentButton = document.getElementById('requestPaymentButton');
 
 const statusLine = document.getElementById('statusLine');
 const outputLog = document.getElementById('outputLog');
+let listenerSetupPromise;
 
 const setStatus = (message) => {
   if (statusLine) {
@@ -35,6 +36,27 @@ const parseJsonInput = (inputElement, label) => {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`${label} JSON invalid: ${message}`);
   }
+};
+
+const ensurePayListeners = async () => {
+  if (!listenerSetupPromise) {
+    listenerSetupPromise = Promise.all([
+      Pay.addListener('onAuthorized', (result) => {
+        setStatus('Google Pay authorized');
+        logResult({ event: 'onAuthorized', result });
+      }),
+      Pay.addListener('onCanceled', (result) => {
+        setStatus(`Google Pay canceled: ${result.message}`);
+        logResult({ event: 'onCanceled', result });
+      }),
+      Pay.addListener('onError', (error) => {
+        setStatus(`Google Pay error: ${error.message}`);
+        logResult({ event: 'onError', error });
+      }),
+    ]);
+  }
+
+  return listenerSetupPromise;
 };
 
 checkAvailabilityButton?.addEventListener('click', async () => {
@@ -66,6 +88,7 @@ checkAvailabilityButton?.addEventListener('click', async () => {
 requestPaymentButton?.addEventListener('click', async () => {
   try {
     setStatus('Requesting payment...');
+    await ensurePayListeners();
 
     const paymentOptions = {};
     const appleOptions = parseJsonInput(applePaymentInput, 'Apple Pay');
@@ -83,8 +106,22 @@ requestPaymentButton?.addEventListener('click', async () => {
     }
 
     const result = await Pay.requestPayment(paymentOptions);
-    setStatus('Payment flow finished');
-    logResult(result);
+
+    if (result.platform === 'android') {
+      setStatus('Google Pay sheet launched. Waiting for onAuthorized / onCanceled / onError...');
+      logResult({
+        phase: 'requestPayment',
+        result,
+        note: 'Android Google Pay resolves the final outcome through event listeners.',
+      });
+      return;
+    }
+
+    setStatus('Payment authorized');
+    logResult({
+      phase: 'requestPayment',
+      result,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     setStatus(`Payment failed: ${message}`);
