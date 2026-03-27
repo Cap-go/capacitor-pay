@@ -319,12 +319,7 @@ public class PayPlugin extends Plugin {
         }
     }
 
-    private void rejectPendingGooglePayCall(
-        String message,
-        @Nullable String code,
-        @Nullable Exception error,
-        @Nullable JSObject data
-    ) {
+    private void rejectPendingGooglePayCall(String message, @Nullable String code, @Nullable Exception error, @Nullable JSObject data) {
         PluginCall call = this.pendingGooglePayCall;
         this.pendingGooglePayCall = null;
         if (call != null) {
