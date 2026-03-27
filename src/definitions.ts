@@ -735,11 +735,11 @@ export interface GooglePayAddress {
   /**
    * City or locality.
    */
-  locality: string;
+  locality?: string;
   /**
    * State, province, or other administrative area.
    */
-  administrativeArea: string;
+  administrativeArea?: string;
   /**
    * Two-letter ISO 3166-1 alpha-2 country code.
    */
