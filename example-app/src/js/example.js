@@ -1,3 +1,5 @@
+import { CapacitorUpdater } from '@capgo/capacitor-updater';
+import { Capacitor } from '@capacitor/core';
 import { Pay } from '@capgo/capacitor-pay';
 
 const appleAvailabilityInput = document.getElementById('appleAvailability');
@@ -119,3 +121,9 @@ requestPaymentButton?.addEventListener('click', async () => {
     logResult({ error: message });
   }
 });
+
+if (Capacitor.isNativePlatform()) {
+  CapacitorUpdater.notifyAppReady().catch((error) => {
+    console.error('Capgo notifyAppReady failed', error);
+  });
+}
