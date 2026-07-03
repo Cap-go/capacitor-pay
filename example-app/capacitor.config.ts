@@ -4,7 +4,7 @@ import pkg from './package.json';
 
 const config: CapacitorConfig = {
   appId: 'app.capgo.pay',
-  appName: 'Pay Example',
+  appName: '@capgo/capacitor-pay',
   webDir: 'dist',
   plugins: {
     SplashScreen: {
