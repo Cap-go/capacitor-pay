@@ -1,17 +1,27 @@
 # @capgo/capacitor-pay
 
-<a href="https://capgo.app/"><img src="https://capgo.app/readme-banner.svg?repo=Cap-go/capacitor-pay" alt="Capgo - Instant updates for Capacitor" /></a>
+Accept Apple Pay and Google Pay in your Capacitor app with one JavaScript API, using the native payment sheets.
+
+<a href="https://capgo.app/?ref=plugin_pay"><img src="https://capgo.app/readme-banner.svg?repo=Cap-go/capacitor-pay" alt="Capgo - Instant updates for Capacitor" /></a>
 
 <div align="center">
-  <h2>
-    <a href="https://capgo.app/?ref=plugin_pay"> ➡️ Get Instant updates for your App with Capgo</a>
-  </h2>
-  <h2>
-    <a href="https://capgo.app/consulting/?ref=plugin_pay"> Missing a feature? We'll build the plugin for you 💪</a>
-  </h2>
+  <p><b>Capgo</b>: open-source live updates for Ionic and Capacitor apps. Ship OTA fixes and features instantly, without waiting for app store review.</p>
+  <h2><a href="https://capgo.app/register/?ref=plugin_pay">➡️ Get started for free</a></h2>
+  <p>14-day unlimited free trial. No credit card required</p>
+  <p><a href="https://capgo.app/consulting/?ref=plugin_pay">Missing a feature? We'll build the plugin for you 💪</a></p>
 </div>
 
-Capacitor plugin to trigger native payments with Apple Pay and Google Pay using a unified JavaScript API.
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Cap-go/capacitor-pay/main/assets/github-social-preview.png" alt="@capgo/capacitor-pay for Capacitor apps" width="300" />
+</p>
+
+## Key features
+
+- **Availability**: `isPayAvailable()` checks if the device can pay with your networks.
+- **Native sheet**: `requestPayment()` presents Apple Pay or Google Pay and returns a structured result with the payment data.
+- **Apple Pay options**: merchant identifier, supported networks, capabilities and contact fields.
+- **Google Pay options**: test or production environment, card networks, and gateway or direct tokenization.
+- **Platforms**: iOS and Android. iOS uses PassKit, Android uses Google Pay through Play services. Not available on web.
 
 ## Documentation
 
