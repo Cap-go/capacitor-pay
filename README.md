@@ -18,7 +18,7 @@ Accept Apple Pay and Google Pay in your Capacitor app with one JavaScript API, u
 ## Key features
 
 - **Availability**: `isPayAvailable()` checks if the device can pay with your networks.
-- **Native sheet**: `requestPayment()` presents Apple Pay or Google Pay and returns the payment token.
+- **Native sheet**: `requestPayment()` presents Apple Pay or Google Pay and returns a structured result with the payment data.
 - **Apple Pay options**: merchant identifier, supported networks, capabilities and contact fields.
 - **Google Pay options**: test or production environment, card networks, and gateway or direct tokenization.
 - **Platforms**: iOS and Android. iOS uses PassKit, Android uses Google Pay through Play services. Not available on web.
