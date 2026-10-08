@@ -187,9 +187,8 @@ public class PayPlugin extends Plugin {
 
         if (resultCode == AutoResolveHelper.RESULT_ERROR) {
             Status status = AutoResolveHelper.getStatusFromIntent(data);
-            String message = (status != null && status.getStatusMessage() != null)
-                ? status.getStatusMessage()
-                : "Google Pay returned an error.";
+            String message =
+                status != null && status.getStatusMessage() != null ? status.getStatusMessage() : "Google Pay returned an error.";
             this.emitError(new Exception(message), "GOOGLE_PAY_API_ERROR", status);
             return;
         }
