@@ -263,18 +263,10 @@ export type GooglePayShippingAddressFormat = 'FULL' | 'FULL-ISO3166' | (string &
 export type GooglePayTotalPriceStatus = 'NOT_CURRENTLY_KNOWN' | 'ESTIMATED' | 'FINAL' | (string & Record<never, never>);
 
 export type GooglePayCheckoutOption =
-  | 'DEFAULT'
-  | 'COMPLETE_IMMEDIATE_PURCHASE'
-  | 'CONTINUE_TO_REVIEW'
-  | (string & Record<never, never>);
+  'DEFAULT' | 'COMPLETE_IMMEDIATE_PURCHASE' | 'CONTINUE_TO_REVIEW' | (string & Record<never, never>);
 
 export type GooglePayDisplayItemType =
-  | 'LINE_ITEM'
-  | 'SUBTOTAL'
-  | 'TAX'
-  | 'DISCOUNT'
-  | 'SHIPPING_OPTION'
-  | (string & Record<never, never>);
+  'LINE_ITEM' | 'SUBTOTAL' | 'TAX' | 'DISCOUNT' | 'SHIPPING_OPTION' | (string & Record<never, never>);
 
 export type GooglePayDisplayItemStatus = 'FINAL' | 'PENDING' | (string & Record<never, never>);
 
