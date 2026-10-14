@@ -399,6 +399,11 @@ public class PayPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void updateApplePayShipping(PluginCall call) {
+        call.unavailable("Apple Pay shipping updates are only available on iOS.");
+    }
+
+    @PluginMethod
     public void getPluginVersion(final PluginCall call) {
         try {
             final JSObject ret = new JSObject();
