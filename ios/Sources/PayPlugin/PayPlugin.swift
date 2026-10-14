@@ -182,7 +182,13 @@ public class PayPlugin: CAPPlugin, CAPBridgedPlugin, PKPaymentAuthorizationContr
 
         let shippingMethodsValue = call.getArray("shippingMethods")
         let hasShippingMethods = shippingMethodsValue != nil
-        let shippingMethods = parseShippingMethods(from: shippingMethodsValue)
+        let shippingMethods: [PKShippingMethod]
+        do {
+            shippingMethods = try parseShippingMethods(from: shippingMethodsValue)
+        } catch {
+            call.reject(error.localizedDescription)
+            return
+        }
 
         if needsShippingMethodListener(shippingMethods) {
             call.reject(shippingMethodListenerRequired)
@@ -344,7 +350,7 @@ public class PayPlugin: CAPPlugin, CAPBridgedPlugin, PKPaymentAuthorizationContr
             paymentRequest.shippingType = shippingType
         }
 
-        let shippingMethods = parseShippingMethods(from: options["shippingMethods"])
+        let shippingMethods = try parseShippingMethods(from: options["shippingMethods"])
         if !shippingMethods.isEmpty {
             paymentRequest.shippingMethods = shippingMethods
         }
@@ -834,22 +840,22 @@ public class PayPlugin: CAPPlugin, CAPBridgedPlugin, PKPaymentAuthorizationContr
         clearPendingShippingSelection()
     }
 
-    private func parseShippingMethods(from value: Any?) -> [PKShippingMethod] {
+    private func parseShippingMethods(from value: Any?) throws -> [PKShippingMethod] {
         guard let methods = value as? [Any] else {
             return []
         }
 
-        return methods.compactMap { rawMethod in
+        return try methods.map { rawMethod in
             guard let method = rawMethod as? [String: Any],
                   let identifier = method["identifier"] as? String,
                   let label = method["label"] as? String,
                   let amountString = method["amount"] as? String else {
-                return nil
+                throw PayPluginError.invalidConfiguration("Each shipping method must include `identifier`, `label` and `amount`.")
             }
 
             let amount = NSDecimalNumber(string: amountString)
             if amount == NSDecimalNumber.notANumber {
-                return nil
+                throw PayPluginError.invalidConfiguration("Shipping method `amount` must be a valid decimal string.")
             }
 
             let shippingMethod = PKShippingMethod(label: label, amount: amount)
