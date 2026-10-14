@@ -887,7 +887,22 @@ public class PayPlugin: CAPPlugin, CAPBridgedPlugin, PKPaymentAuthorizationContr
             result["detail"] = detail
         }
 
+        if let range = shippingMethod.dateComponentsRange,
+           let startDate = shippingDateString(from: range.startDateComponents),
+           let endDate = shippingDateString(from: range.endDateComponents) {
+            result["startDate"] = startDate
+            result["endDate"] = endDate
+        }
+
         return result
+    }
+
+    private func shippingDateString(from components: DateComponents) -> String? {
+        guard let year = components.year, let month = components.month, let day = components.day else {
+            return nil
+        }
+
+        return String(format: "%04d-%02d-%02d", year, month, day)
     }
 
     @objc func getPluginVersion(_ call: CAPPluginCall) {
