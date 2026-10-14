@@ -1,3 +1,5 @@
+import type { PluginListenerHandle } from '@capacitor/core';
+
 export type PayPlatform = 'ios' | 'android' | 'web';
 
 export type ApplePayNetwork =
@@ -54,6 +56,68 @@ export interface ApplePaySummaryItem {
   label: string;
   amount: string;
   type?: ApplePaySummaryItemType;
+}
+
+export interface ApplePayShippingMethod {
+  /**
+   * Identifier of the shipping method, returned in `applePayShippingMethodSelected` and in the payment result.
+   */
+  identifier: string;
+  /**
+   * Name shown in the Apple Pay sheet.
+   */
+  label: string;
+  /**
+   * Cost of the shipping method as a decimal string (for example `"4.95"`).
+   */
+  amount: string;
+  /**
+   * Extra line shown under the label, for example the expected delivery.
+   */
+  detail?: string;
+  /**
+   * First expected delivery date, shown as a date range together with `endDate`.
+   *
+   * Accepts the same formats as `ApplePayRecurringPaymentSummaryItem.startDate`. The day is read in UTC.
+   */
+  startDate?: number | string;
+  /**
+   * Last expected delivery date, shown as a date range together with `startDate`.
+   *
+   * Accepts the same formats as `ApplePayRecurringPaymentSummaryItem.endDate`. The day is read in UTC.
+   */
+  endDate?: number | string;
+}
+
+export interface ApplePayShippingContactSelectedEvent extends ApplePayContact {
+  /**
+   * Pass this to `updateApplePayShipping()` to answer this event.
+   */
+  selectionId: string;
+}
+
+export interface ApplePayShippingMethodSelectedEvent extends ApplePayShippingMethod {
+  /**
+   * Pass this to `updateApplePayShipping()` to answer this event.
+   */
+  selectionId: string;
+}
+
+export interface ApplePayShippingUpdate {
+  /**
+   * `selectionId` of the event this update answers. An update for an older or expired selection is rejected.
+   */
+  selectionId: string;
+  /**
+   * New payment summary items, including the final total.
+   */
+  paymentSummaryItems: ApplePaySummaryItem[];
+  /**
+   * New shipping methods for the selected address. Leave out to keep the current ones.
+   *
+   * After an address change, an empty array marks the address as unserviceable in the sheet.
+   */
+  shippingMethods?: ApplePayShippingMethod[];
 }
 
 export type ApplePayRecurringPaymentIntervalUnit = 'day' | 'week' | 'month' | 'year';
@@ -171,6 +235,14 @@ export interface ApplePayPaymentOptions {
    */
   shippingType?: ApplePayShippingType;
   /**
+   * Shipping methods the user can choose from in the sheet. The first one is selected by default.
+   *
+   * Include the cost of the selected method in `paymentSummaryItems` yourself, and listen to
+   * `applePayShippingMethodSelected` / `applePayShippingContactSelected` to update the totals.
+   * When the methods have different amounts, an `applePayShippingMethodSelected` listener is required.
+   */
+  shippingMethods?: ApplePayShippingMethod[];
+  /**
    * Optional ISO 3166 country codes where the merchant is supported.
    */
   supportedCountries?: string[];
@@ -228,6 +300,10 @@ export interface ApplePayPaymentResult {
   };
   shippingContact?: ApplePayContact;
   billingContact?: ApplePayContact;
+  /**
+   * Shipping method selected in the sheet, when `shippingMethods` were provided.
+   */
+  shippingMethod?: ApplePayShippingMethod;
 }
 
 export type GooglePayEnvironment = 'test' | 'production';
@@ -980,6 +1056,42 @@ export interface PayPlugin {
    * This promise is the completion path on both platforms.
    */
   requestPayment(options: PayPaymentOptions): Promise<PayPaymentResult>;
+
+  /**
+   * Answers the latest `applePayShippingContactSelected` or `applePayShippingMethodSelected` event
+   * with new totals and, for a new address, new shipping methods. iOS only.
+   *
+   * The Apple Pay sheet waits for this call, so call it once for every event you listen to, also when
+   * your own lookup fails. Without an update within 20 seconds, the sheet reports the selection as failed.
+   */
+  updateApplePayShipping(options: ApplePayShippingUpdate): Promise<void>;
+
+  /**
+   * Called when the user selects or changes the shipping address in the Apple Pay sheet. iOS only.
+   *
+   * Until the payment is authorized, Apple only shares a redacted address (city, state, postal code and country).
+   * The sheet waits until you call `updateApplePayShipping()`. Without a listener the sheet keeps its current totals.
+   */
+  addListener(
+    eventName: 'applePayShippingContactSelected',
+    listenerFunc: (contact: ApplePayShippingContactSelectedEvent) => void,
+  ): Promise<PluginListenerHandle>;
+
+  /**
+   * Called when the user selects another shipping method in the Apple Pay sheet. iOS only.
+   *
+   * The sheet waits until you call `updateApplePayShipping()`. Without a listener the sheet keeps its current totals,
+   * so this listener is required when the shipping methods have different amounts.
+   */
+  addListener(
+    eventName: 'applePayShippingMethodSelected',
+    listenerFunc: (shippingMethod: ApplePayShippingMethodSelectedEvent) => void,
+  ): Promise<PluginListenerHandle>;
+
+  /**
+   * Removes all listeners for this plugin.
+   */
+  removeAllListeners(): Promise<void>;
 
   /**
    * Get the native Capacitor plugin version
