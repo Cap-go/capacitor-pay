@@ -17,14 +17,19 @@ public class PayPlugin: CAPPlugin, CAPBridgedPlugin, PKPaymentAuthorizationContr
 
     private let shippingContactSelectedEvent = "applePayShippingContactSelected"
     private let shippingMethodSelectedEvent = "applePayShippingMethodSelected"
+    private let shippingUpdateTimeout: TimeInterval = 20
+    private let shippingMethodListenerRequired =
+        "Listen to `applePayShippingMethodSelected` when `shippingMethods` have different amounts."
 
     private var pendingApplePayCall: CAPPluginCall?
     private var pendingApplePayment: PKPayment?
     private var applePayController: PKPaymentAuthorizationController?
     private var currentSummaryItems: [PKPaymentSummaryItem] = []
     private var currentShippingMethods: [PKShippingMethod] = []
+    private var pendingShippingSelectionId: String?
     private var pendingShippingContactUpdate: ((PKPaymentRequestShippingContactUpdate) -> Void)?
     private var pendingShippingMethodUpdate: ((PKPaymentRequestShippingMethodUpdate) -> Void)?
+    private var shippingUpdateTimeoutWorkItem: DispatchWorkItem?
 
     @objc func isPayAvailable(_ call: CAPPluginCall) {
         let appleOptions = call.getObject("apple") ?? [:]
@@ -68,6 +73,10 @@ public class PayPlugin: CAPPlugin, CAPBridgedPlugin, PKPaymentAuthorizationContr
             if !request.supportedNetworks.isEmpty &&
                 !PKPaymentAuthorizationController.canMakePayments(usingNetworks: request.supportedNetworks) {
                 throw PayPluginError.invalidConfiguration("None of the requested payment networks are available on this device.")
+            }
+
+            if needsShippingMethodListener(request.shippingMethods ?? []) {
+                throw PayPluginError.invalidConfiguration(shippingMethodListenerRequired)
             }
 
             pendingApplePayCall = call
@@ -142,7 +151,7 @@ public class PayPlugin: CAPPlugin, CAPBridgedPlugin, PKPaymentAuthorizationContr
         }
 
         pendingShippingContactUpdate = completion
-        notifyListeners(shippingContactSelectedEvent, data: contactDictionary(from: contact) ?? [:])
+        startShippingSelection(event: shippingContactSelectedEvent, data: contactDictionary(from: contact) ?? [:])
     }
 
     public func paymentAuthorizationController(
@@ -156,10 +165,15 @@ public class PayPlugin: CAPPlugin, CAPBridgedPlugin, PKPaymentAuthorizationContr
         }
 
         pendingShippingMethodUpdate = completion
-        notifyListeners(shippingMethodSelectedEvent, data: shippingMethodDictionary(from: shippingMethod))
+        startShippingSelection(event: shippingMethodSelectedEvent, data: shippingMethodDictionary(from: shippingMethod))
     }
 
     @objc func updateApplePayShipping(_ call: CAPPluginCall) {
+        guard let selectionId = call.getString("selectionId") else {
+            call.reject("`selectionId` is required.")
+            return
+        }
+
         let summaryItems = paymentSummaryItems(from: call.getArray("paymentSummaryItems"))
         guard !summaryItems.isEmpty else {
             call.reject("`paymentSummaryItems` must include at least one item.")
@@ -170,34 +184,99 @@ public class PayPlugin: CAPPlugin, CAPBridgedPlugin, PKPaymentAuthorizationContr
         let hasShippingMethods = shippingMethodsValue != nil
         let shippingMethods = parseShippingMethods(from: shippingMethodsValue)
 
+        if needsShippingMethodListener(shippingMethods) {
+            call.reject(shippingMethodListenerRequired)
+            return
+        }
+
         DispatchQueue.main.async {
-            if let completion = self.pendingShippingContactUpdate {
-                self.pendingShippingContactUpdate = nil
-                self.currentSummaryItems = summaryItems
-                if hasShippingMethods {
-                    self.currentShippingMethods = shippingMethods
-                }
+            guard selectionId == self.pendingShippingSelectionId else {
+                call.reject("No Apple Pay shipping selection is waiting for this update.")
+                return
+            }
+
+            let contactCompletion = self.pendingShippingContactUpdate
+            let methodCompletion = self.pendingShippingMethodUpdate
+            self.clearPendingShippingSelection()
+            self.currentSummaryItems = summaryItems
+            if hasShippingMethods {
+                self.currentShippingMethods = shippingMethods
+            }
+
+            if let completion = contactCompletion {
+                let errors = hasShippingMethods && shippingMethods.isEmpty
+                    ? [PKPaymentRequest.paymentShippingAddressUnserviceableError(withLocalizedDescription: nil)]
+                    : nil
                 completion(PKPaymentRequestShippingContactUpdate(
-                    errors: nil,
+                    errors: errors,
                     paymentSummaryItems: summaryItems,
                     shippingMethods: self.currentShippingMethods
                 ))
-            } else if let completion = self.pendingShippingMethodUpdate {
-                self.pendingShippingMethodUpdate = nil
-                self.currentSummaryItems = summaryItems
+            } else if let completion = methodCompletion {
                 let update = PKPaymentRequestShippingMethodUpdate(paymentSummaryItems: summaryItems)
                 if hasShippingMethods {
-                    self.currentShippingMethods = shippingMethods
                     update.shippingMethods = shippingMethods
                 }
                 completion(update)
-            } else {
-                call.reject("No Apple Pay shipping selection is waiting for an update.")
-                return
             }
 
             call.resolve()
         }
+    }
+
+    private func startShippingSelection(event: String, data: [String: Any]) {
+        let selectionId = UUID().uuidString
+        pendingShippingSelectionId = selectionId
+
+        shippingUpdateTimeoutWorkItem?.cancel()
+        let timeout = DispatchWorkItem { [weak self] in
+            self?.failShippingSelection(selectionId)
+        }
+        shippingUpdateTimeoutWorkItem = timeout
+        DispatchQueue.main.asyncAfter(deadline: .now() + shippingUpdateTimeout, execute: timeout)
+
+        var eventData = data
+        eventData["selectionId"] = selectionId
+        notifyListeners(event, data: eventData)
+    }
+
+    private func failShippingSelection(_ selectionId: String) {
+        guard selectionId == pendingShippingSelectionId else {
+            return
+        }
+
+        let contactCompletion = pendingShippingContactUpdate
+        let methodCompletion = pendingShippingMethodUpdate
+        clearPendingShippingSelection()
+
+        if let completion = contactCompletion {
+            completion(PKPaymentRequestShippingContactUpdate(
+                errors: [PKPaymentRequest.paymentShippingAddressUnserviceableError(withLocalizedDescription: nil)],
+                paymentSummaryItems: currentSummaryItems,
+                shippingMethods: currentShippingMethods
+            ))
+        } else if let completion = methodCompletion {
+            let update = PKPaymentRequestShippingMethodUpdate(paymentSummaryItems: currentSummaryItems)
+            update.status = .failure
+            completion(update)
+        }
+    }
+
+    private func clearPendingShippingSelection() {
+        shippingUpdateTimeoutWorkItem?.cancel()
+        shippingUpdateTimeoutWorkItem = nil
+        pendingShippingSelectionId = nil
+        pendingShippingContactUpdate = nil
+        pendingShippingMethodUpdate = nil
+    }
+
+    private func needsShippingMethodListener(_ shippingMethods: [PKShippingMethod]) -> Bool {
+        guard let firstAmount = shippingMethods.first?.amount else {
+            return false
+        }
+
+        return !hasListeners(shippingMethodSelectedEvent)
+            && shippingMethods.contains { $0.amount.compare(firstAmount) != .orderedSame }
     }
 
     // MARK: - Helpers
@@ -752,8 +831,7 @@ public class PayPlugin: CAPPlugin, CAPBridgedPlugin, PKPaymentAuthorizationContr
         applePayController = nil
         currentSummaryItems = []
         currentShippingMethods = []
-        pendingShippingContactUpdate = nil
-        pendingShippingMethodUpdate = nil
+        clearPendingShippingSelection()
     }
 
     private func parseShippingMethods(from value: Any?) -> [PKShippingMethod] {

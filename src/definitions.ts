@@ -89,13 +89,33 @@ export interface ApplePayShippingMethod {
   endDate?: number | string;
 }
 
+export interface ApplePayShippingContactSelectedEvent extends ApplePayContact {
+  /**
+   * Pass this to `updateApplePayShipping()` to answer this event.
+   */
+  selectionId: string;
+}
+
+export interface ApplePayShippingMethodSelectedEvent extends ApplePayShippingMethod {
+  /**
+   * Pass this to `updateApplePayShipping()` to answer this event.
+   */
+  selectionId: string;
+}
+
 export interface ApplePayShippingUpdate {
+  /**
+   * `selectionId` of the event this update answers. An update for an older or expired selection is rejected.
+   */
+  selectionId: string;
   /**
    * New payment summary items, including the final total.
    */
   paymentSummaryItems: ApplePaySummaryItem[];
   /**
    * New shipping methods for the selected address. Leave out to keep the current ones.
+   *
+   * After an address change, an empty array marks the address as unserviceable in the sheet.
    */
   shippingMethods?: ApplePayShippingMethod[];
 }
@@ -219,6 +239,7 @@ export interface ApplePayPaymentOptions {
    *
    * Include the cost of the selected method in `paymentSummaryItems` yourself, and listen to
    * `applePayShippingMethodSelected` / `applePayShippingContactSelected` to update the totals.
+   * When the methods have different amounts, an `applePayShippingMethodSelected` listener is required.
    */
   shippingMethods?: ApplePayShippingMethod[];
   /**
@@ -1048,7 +1069,8 @@ export interface PayPlugin {
    * Answers the latest `applePayShippingContactSelected` or `applePayShippingMethodSelected` event
    * with new totals and, for a new address, new shipping methods. iOS only.
    *
-   * The Apple Pay sheet waits for this call, so call it once for every event you listen to.
+   * The Apple Pay sheet waits for this call, so call it once for every event you listen to, also when
+   * your own lookup fails. Without an update within 20 seconds, the sheet reports the selection as failed.
    */
   updateApplePayShipping(options: ApplePayShippingUpdate): Promise<void>;
 
@@ -1060,17 +1082,18 @@ export interface PayPlugin {
    */
   addListener(
     eventName: 'applePayShippingContactSelected',
-    listenerFunc: (contact: ApplePayContact) => void,
+    listenerFunc: (contact: ApplePayShippingContactSelectedEvent) => void,
   ): Promise<PluginListenerHandle>;
 
   /**
    * Called when the user selects another shipping method in the Apple Pay sheet. iOS only.
    *
-   * The sheet waits until you call `updateApplePayShipping()`. Without a listener the sheet keeps its current totals.
+   * The sheet waits until you call `updateApplePayShipping()`. Without a listener the sheet keeps its current totals,
+   * so this listener is required when the shipping methods have different amounts.
    */
   addListener(
     eventName: 'applePayShippingMethodSelected',
-    listenerFunc: (shippingMethod: ApplePayShippingMethod) => void,
+    listenerFunc: (shippingMethod: ApplePayShippingMethodSelectedEvent) => void,
   ): Promise<PluginListenerHandle>;
 
   /**

@@ -261,7 +261,7 @@ const result = await Pay.requestPayment({
 
 ## Shipping methods (Apple Pay)
 
-Pass `shippingMethods` to let the user choose how the order is delivered, for example home delivery or pickup in a store. The first method is selected by default. When the user changes the address or the method, the sheet waits until you answer with `updateApplePayShipping()`:
+Pass `shippingMethods` to let the user choose how the order is delivered, for example home delivery or pickup in a store. The first method is selected by default. When the user changes the address or the method, the sheet waits until you answer with `updateApplePayShipping()`, passing the `selectionId` of the event. Answer every event, also when your own lookup fails; without an update within 20 seconds the sheet reports the selection as failed. When the methods have different amounts, the `applePayShippingMethodSelected` listener is required:
 
 ```ts
 import { Pay } from '@capgo/capacitor-pay';
@@ -273,12 +273,20 @@ const deliveryMethods = [
 
 await Pay.addListener('applePayShippingContactSelected', async (contact) => {
   // Apple only shares city, postal code and country until the payment is authorized
+  // An empty `shippingMethods` array marks the address as unserviceable
   const shippingMethods = await getShippingMethodsFor(contact.postalAddress?.isoCountryCode);
-  await Pay.updateApplePayShipping({ paymentSummaryItems: getSummaryItems(shippingMethods[0]), shippingMethods });
+  await Pay.updateApplePayShipping({
+    selectionId: contact.selectionId,
+    paymentSummaryItems: getSummaryItems(shippingMethods[0]),
+    shippingMethods,
+  });
 });
 
 await Pay.addListener('applePayShippingMethodSelected', async (shippingMethod) => {
-  await Pay.updateApplePayShipping({ paymentSummaryItems: getSummaryItems(shippingMethod) });
+  await Pay.updateApplePayShipping({
+    selectionId: shippingMethod.selectionId,
+    paymentSummaryItems: getSummaryItems(shippingMethod),
+  });
 });
 
 const result = await Pay.requestPayment({
@@ -362,7 +370,8 @@ updateApplePayShipping(options: ApplePayShippingUpdate) => Promise<void>
 Answers the latest `applePayShippingContactSelected` or `applePayShippingMethodSelected` event
 with new totals and, for a new address, new shipping methods. iOS only.
 
-The Apple Pay sheet waits for this call, so call it once for every event you listen to.
+The Apple Pay sheet waits for this call, so call it once for every event you listen to, also when
+your own lookup fails. Without an update within 20 seconds, the sheet reports the selection as failed.
 
 | Param         | Type                                                                      |
 | ------------- | ------------------------------------------------------------------------- |
@@ -374,7 +383,7 @@ The Apple Pay sheet waits for this call, so call it once for every event you lis
 ### addListener('applePayShippingContactSelected', ...)
 
 ```typescript
-addListener(eventName: 'applePayShippingContactSelected', listenerFunc: (contact: ApplePayContact) => void) => Promise<PluginListenerHandle>
+addListener(eventName: 'applePayShippingContactSelected', listenerFunc: (contact: ApplePayShippingContactSelectedEvent) => void) => Promise<PluginListenerHandle>
 ```
 
 Called when the user selects or changes the shipping address in the Apple Pay sheet. iOS only.
@@ -382,10 +391,10 @@ Called when the user selects or changes the shipping address in the Apple Pay sh
 Until the payment is authorized, Apple only shares a redacted address (city, state, postal code and country).
 The sheet waits until you call `updateApplePayShipping()`. Without a listener the sheet keeps its current totals.
 
-| Param              | Type                                                                              |
-| ------------------ | --------------------------------------------------------------------------------- |
-| **`eventName`**    | <code>'applePayShippingContactSelected'</code>                                    |
-| **`listenerFunc`** | <code>(contact: <a href="#applepaycontact">ApplePayContact</a>) =&gt; void</code> |
+| Param              | Type                                                                                                                        |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| **`eventName`**    | <code>'applePayShippingContactSelected'</code>                                                                              |
+| **`listenerFunc`** | <code>(contact: <a href="#applepayshippingcontactselectedevent">ApplePayShippingContactSelectedEvent</a>) =&gt; void</code> |
 
 **Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
 
@@ -395,17 +404,18 @@ The sheet waits until you call `updateApplePayShipping()`. Without a listener th
 ### addListener('applePayShippingMethodSelected', ...)
 
 ```typescript
-addListener(eventName: 'applePayShippingMethodSelected', listenerFunc: (shippingMethod: ApplePayShippingMethod) => void) => Promise<PluginListenerHandle>
+addListener(eventName: 'applePayShippingMethodSelected', listenerFunc: (shippingMethod: ApplePayShippingMethodSelectedEvent) => void) => Promise<PluginListenerHandle>
 ```
 
 Called when the user selects another shipping method in the Apple Pay sheet. iOS only.
 
-The sheet waits until you call `updateApplePayShipping()`. Without a listener the sheet keeps its current totals.
+The sheet waits until you call `updateApplePayShipping()`. Without a listener the sheet keeps its current totals,
+so this listener is required when the shipping methods have different amounts.
 
-| Param              | Type                                                                                                   |
-| ------------------ | ------------------------------------------------------------------------------------------------------ |
-| **`eventName`**    | <code>'applePayShippingMethodSelected'</code>                                                          |
-| **`listenerFunc`** | <code>(shippingMethod: <a href="#applepayshippingmethod">ApplePayShippingMethod</a>) =&gt; void</code> |
+| Param              | Type                                                                                                                             |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| **`eventName`**    | <code>'applePayShippingMethodSelected'</code>                                                                                    |
+| **`listenerFunc`** | <code>(shippingMethod: <a href="#applepayshippingmethodselectedevent">ApplePayShippingMethodSelectedEvent</a>) =&gt; void</code> |
 
 **Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
 
@@ -737,21 +747,21 @@ Tokenization parameters for `PAYMENT_GATEWAY` tokenization, which sends the paym
 
 #### ApplePayPaymentOptions
 
-| Prop                                | Type                                                                                        | Description                                                                                                                                                                                                                                                                       |
-| ----------------------------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`merchantIdentifier`**            | <code>string</code>                                                                         | Merchant identifier created in the Apple Developer portal.                                                                                                                                                                                                                        |
-| **`countryCode`**                   | <code>string</code>                                                                         | Two-letter ISO 3166 country code.                                                                                                                                                                                                                                                 |
-| **`currencyCode`**                  | <code>string</code>                                                                         | Three-letter ISO 4217 currency code.                                                                                                                                                                                                                                              |
-| **`paymentSummaryItems`**           | <code>ApplePaySummaryItem[]</code>                                                          | Payment summary items displayed in the Apple Pay sheet.                                                                                                                                                                                                                           |
-| **`supportedNetworks`**             | <code>ApplePayNetwork[]</code>                                                              | Card networks to support.                                                                                                                                                                                                                                                         |
-| **`merchantCapabilities`**          | <code>ApplePayMerchantCapability[]</code>                                                   | Merchant payment capabilities. Defaults to ['3DS'] when omitted.                                                                                                                                                                                                                  |
-| **`requiredShippingContactFields`** | <code>ApplePayContactField[]</code>                                                         | Contact fields that must be supplied for shipping.                                                                                                                                                                                                                                |
-| **`requiredBillingContactFields`**  | <code>ApplePayContactField[]</code>                                                         | Contact fields that must be supplied for billing.                                                                                                                                                                                                                                 |
-| **`shippingType`**                  | <code><a href="#applepayshippingtype">ApplePayShippingType</a></code>                       | Controls the shipping flow presented to the user.                                                                                                                                                                                                                                 |
-| **`shippingMethods`**               | <code>ApplePayShippingMethod[]</code>                                                       | Shipping methods the user can choose from in the sheet. The first one is selected by default. Include the cost of the selected method in `paymentSummaryItems` yourself, and listen to `applePayShippingMethodSelected` / `applePayShippingContactSelected` to update the totals. |
-| **`supportedCountries`**            | <code>string[]</code>                                                                       | Optional ISO 3166 country codes where the merchant is supported.                                                                                                                                                                                                                  |
-| **`applicationData`**               | <code>string</code>                                                                         | Optional opaque application data passed back in the payment token.                                                                                                                                                                                                                |
-| **`recurringPaymentRequest`**       | <code><a href="#applepayrecurringpaymentrequest">ApplePayRecurringPaymentRequest</a></code> | Recurring payment configuration (iOS 16+).                                                                                                                                                                                                                                        |
+| Prop                                | Type                                                                                        | Description                                                                                                                                                                                                                                                                                                                                                                          |
+| ----------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **`merchantIdentifier`**            | <code>string</code>                                                                         | Merchant identifier created in the Apple Developer portal.                                                                                                                                                                                                                                                                                                                           |
+| **`countryCode`**                   | <code>string</code>                                                                         | Two-letter ISO 3166 country code.                                                                                                                                                                                                                                                                                                                                                    |
+| **`currencyCode`**                  | <code>string</code>                                                                         | Three-letter ISO 4217 currency code.                                                                                                                                                                                                                                                                                                                                                 |
+| **`paymentSummaryItems`**           | <code>ApplePaySummaryItem[]</code>                                                          | Payment summary items displayed in the Apple Pay sheet.                                                                                                                                                                                                                                                                                                                              |
+| **`supportedNetworks`**             | <code>ApplePayNetwork[]</code>                                                              | Card networks to support.                                                                                                                                                                                                                                                                                                                                                            |
+| **`merchantCapabilities`**          | <code>ApplePayMerchantCapability[]</code>                                                   | Merchant payment capabilities. Defaults to ['3DS'] when omitted.                                                                                                                                                                                                                                                                                                                     |
+| **`requiredShippingContactFields`** | <code>ApplePayContactField[]</code>                                                         | Contact fields that must be supplied for shipping.                                                                                                                                                                                                                                                                                                                                   |
+| **`requiredBillingContactFields`**  | <code>ApplePayContactField[]</code>                                                         | Contact fields that must be supplied for billing.                                                                                                                                                                                                                                                                                                                                    |
+| **`shippingType`**                  | <code><a href="#applepayshippingtype">ApplePayShippingType</a></code>                       | Controls the shipping flow presented to the user.                                                                                                                                                                                                                                                                                                                                    |
+| **`shippingMethods`**               | <code>ApplePayShippingMethod[]</code>                                                       | Shipping methods the user can choose from in the sheet. The first one is selected by default. Include the cost of the selected method in `paymentSummaryItems` yourself, and listen to `applePayShippingMethodSelected` / `applePayShippingContactSelected` to update the totals. When the methods have different amounts, an `applePayShippingMethodSelected` listener is required. |
+| **`supportedCountries`**            | <code>string[]</code>                                                                       | Optional ISO 3166 country codes where the merchant is supported.                                                                                                                                                                                                                                                                                                                     |
+| **`applicationData`**               | <code>string</code>                                                                         | Optional opaque application data passed back in the payment token.                                                                                                                                                                                                                                                                                                                   |
+| **`recurringPaymentRequest`**       | <code><a href="#applepayrecurringpaymentrequest">ApplePayRecurringPaymentRequest</a></code> | Recurring payment configuration (iOS 16+).                                                                                                                                                                                                                                                                                                                                           |
 
 
 #### ApplePaySummaryItem
@@ -901,10 +911,11 @@ so consumers do not need to install `@types/googlepay`.
 
 #### ApplePayShippingUpdate
 
-| Prop                      | Type                                  | Description                                                                        |
-| ------------------------- | ------------------------------------- | ---------------------------------------------------------------------------------- |
-| **`paymentSummaryItems`** | <code>ApplePaySummaryItem[]</code>    | New payment summary items, including the final total.                              |
-| **`shippingMethods`**     | <code>ApplePayShippingMethod[]</code> | New shipping methods for the selected address. Leave out to keep the current ones. |
+| Prop                      | Type                                  | Description                                                                                                                                                                 |
+| ------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`selectionId`**         | <code>string</code>                   | `selectionId` of the event this update answers. An update for an older or expired selection is rejected.                                                                    |
+| **`paymentSummaryItems`** | <code>ApplePaySummaryItem[]</code>    | New payment summary items, including the final total.                                                                                                                       |
+| **`shippingMethods`**     | <code>ApplePayShippingMethod[]</code> | New shipping methods for the selected address. Leave out to keep the current ones. After an address change, an empty array marks the address as unserviceable in the sheet. |
 
 
 #### PluginListenerHandle
@@ -912,6 +923,20 @@ so consumers do not need to install `@types/googlepay`.
 | Prop         | Type                                      |
 | ------------ | ----------------------------------------- |
 | **`remove`** | <code>() =&gt; Promise&lt;void&gt;</code> |
+
+
+#### ApplePayShippingContactSelectedEvent
+
+| Prop              | Type                | Description                                                   |
+| ----------------- | ------------------- | ------------------------------------------------------------- |
+| **`selectionId`** | <code>string</code> | Pass this to `updateApplePayShipping()` to answer this event. |
+
+
+#### ApplePayShippingMethodSelectedEvent
+
+| Prop              | Type                | Description                                                   |
+| ----------------- | ------------------- | ------------------------------------------------------------- |
+| **`selectionId`** | <code>string</code> | Pass this to `updateApplePayShipping()` to answer this event. |
 
 
 ### Type Aliases
