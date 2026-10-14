@@ -75,10 +75,6 @@ public class PayPlugin: CAPPlugin, CAPBridgedPlugin, PKPaymentAuthorizationContr
                 throw PayPluginError.invalidConfiguration("None of the requested payment networks are available on this device.")
             }
 
-            if needsShippingMethodListener(request.shippingMethods ?? []) {
-                throw PayPluginError.invalidConfiguration(shippingMethodListenerRequired)
-            }
-
             pendingApplePayCall = call
             pendingApplePayment = nil
             currentSummaryItems = request.paymentSummaryItems
@@ -184,14 +180,9 @@ public class PayPlugin: CAPPlugin, CAPBridgedPlugin, PKPaymentAuthorizationContr
         let hasShippingMethods = shippingMethodsValue != nil
         let shippingMethods: [PKShippingMethod]
         do {
-            shippingMethods = try parseShippingMethods(from: shippingMethodsValue)
+            shippingMethods = try validatedShippingMethods(from: shippingMethodsValue)
         } catch {
             call.reject(error.localizedDescription)
-            return
-        }
-
-        if needsShippingMethodListener(shippingMethods) {
-            call.reject(shippingMethodListenerRequired)
             return
         }
 
@@ -276,13 +267,17 @@ public class PayPlugin: CAPPlugin, CAPBridgedPlugin, PKPaymentAuthorizationContr
         pendingShippingMethodUpdate = nil
     }
 
-    private func needsShippingMethodListener(_ shippingMethods: [PKShippingMethod]) -> Bool {
-        guard let firstAmount = shippingMethods.first?.amount else {
-            return false
+    private func validatedShippingMethods(from value: Any?) throws -> [PKShippingMethod] {
+        let shippingMethods = try parseShippingMethods(from: value)
+        guard let firstAmount = shippingMethods.first?.amount, !hasListeners(shippingMethodSelectedEvent) else {
+            return shippingMethods
         }
 
-        return !hasListeners(shippingMethodSelectedEvent)
-            && shippingMethods.contains { $0.amount.compare(firstAmount) != .orderedSame }
+        if shippingMethods.contains(where: { $0.amount.compare(firstAmount) != .orderedSame }) {
+            throw PayPluginError.invalidConfiguration(shippingMethodListenerRequired)
+        }
+
+        return shippingMethods
     }
 
     // MARK: - Helpers
@@ -350,7 +345,7 @@ public class PayPlugin: CAPPlugin, CAPBridgedPlugin, PKPaymentAuthorizationContr
             paymentRequest.shippingType = shippingType
         }
 
-        let shippingMethods = try parseShippingMethods(from: options["shippingMethods"])
+        let shippingMethods = try validatedShippingMethods(from: options["shippingMethods"])
         if !shippingMethods.isEmpty {
             paymentRequest.shippingMethods = shippingMethods
         }
