@@ -621,14 +621,14 @@ Tokenization parameters for `PAYMENT_GATEWAY` tokenization, which sends the paym
 
 #### ApplePayShippingMethod
 
-| Prop             | Type                          | Description                                                                                                                                                                                                  |
-| ---------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **`identifier`** | <code>string</code>           | Identifier of the shipping method, returned in `applePayShippingMethodSelected` and in the payment result.                                                                                                   |
-| **`label`**      | <code>string</code>           | Name shown in the Apple Pay sheet.                                                                                                                                                                           |
-| **`amount`**     | <code>string</code>           | Cost of the shipping method as a decimal string (for example `"4.95"`).                                                                                                                                      |
-| **`detail`**     | <code>string</code>           | Extra line shown under the label, for example the expected delivery.                                                                                                                                         |
-| **`startDate`**  | <code>string \| number</code> | First expected delivery date, shown as a date range together with `endDate`. Accepts the same formats as <a href="#applepayrecurringpaymentsummaryitem">`ApplePayRecurringPaymentSummaryItem.startDate`</a>. |
-| **`endDate`**    | <code>string \| number</code> | Last expected delivery date, shown as a date range together with `startDate`. Accepts the same formats as <a href="#applepayrecurringpaymentsummaryitem">`ApplePayRecurringPaymentSummaryItem.endDate`</a>.  |
+| Prop             | Type                          | Description                                                                                                                                                                                                                          |
+| ---------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **`identifier`** | <code>string</code>           | Identifier of the shipping method, returned in `applePayShippingMethodSelected` and in the payment result.                                                                                                                           |
+| **`label`**      | <code>string</code>           | Name shown in the Apple Pay sheet.                                                                                                                                                                                                   |
+| **`amount`**     | <code>string</code>           | Cost of the shipping method as a decimal string (for example `"4.95"`).                                                                                                                                                              |
+| **`detail`**     | <code>string</code>           | Extra line shown under the label, for example the expected delivery.                                                                                                                                                                 |
+| **`startDate`**  | <code>string \| number</code> | First expected delivery date, shown as a date range together with `endDate`. Accepts the same formats as <a href="#applepayrecurringpaymentsummaryitem">`ApplePayRecurringPaymentSummaryItem.startDate`</a>. The day is read in UTC. |
+| **`endDate`**    | <code>string \| number</code> | Last expected delivery date, shown as a date range together with `startDate`. Accepts the same formats as <a href="#applepayrecurringpaymentsummaryitem">`ApplePayRecurringPaymentSummaryItem.endDate`</a>. The day is read in UTC.  |
 
 
 #### GooglePayRequestPaymentResult

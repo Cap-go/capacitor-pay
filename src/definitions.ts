@@ -78,13 +78,13 @@ export interface ApplePayShippingMethod {
   /**
    * First expected delivery date, shown as a date range together with `endDate`.
    *
-   * Accepts the same formats as `ApplePayRecurringPaymentSummaryItem.startDate`.
+   * Accepts the same formats as `ApplePayRecurringPaymentSummaryItem.startDate`. The day is read in UTC.
    */
   startDate?: number | string;
   /**
    * Last expected delivery date, shown as a date range together with `startDate`.
    *
-   * Accepts the same formats as `ApplePayRecurringPaymentSummaryItem.endDate`.
+   * Accepts the same formats as `ApplePayRecurringPaymentSummaryItem.endDate`. The day is read in UTC.
    */
   endDate?: number | string;
 }

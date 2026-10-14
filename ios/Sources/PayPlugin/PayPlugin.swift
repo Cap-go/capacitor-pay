@@ -780,7 +780,8 @@ public class PayPlugin: CAPPlugin, CAPBridgedPlugin, PKPaymentAuthorizationContr
 
             if let startDateRaw = method["startDate"], let endDateRaw = method["endDate"],
                let startDate = parseDate(from: startDateRaw), let endDate = parseDate(from: endDateRaw) {
-                let calendar = Calendar.current
+                var calendar = Calendar(identifier: .gregorian)
+                calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? calendar.timeZone
                 shippingMethod.dateComponentsRange = PKDateComponentsRange(
                     start: calendar.dateComponents([.calendar, .year, .month, .day], from: startDate),
                     end: calendar.dateComponents([.calendar, .year, .month, .day], from: endDate)
