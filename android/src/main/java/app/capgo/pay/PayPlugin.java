@@ -33,7 +33,7 @@ import org.json.JSONObject;
 @CapacitorPlugin(name = "Pay")
 public class PayPlugin extends Plugin {
 
-    private final String pluginVersion = "8.2.3";
+    private final String pluginVersion = "8.2.4";
 
     private boolean paymentInProgress = false;
     private boolean resolutionInProgress = false;
