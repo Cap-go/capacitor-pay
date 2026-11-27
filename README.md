@@ -85,8 +85,8 @@ bunx cap sync
 
 Before invoking the plugin, complete the native configuration documented in this repository:
 
-- **Apple Pay (iOS):** see [`docs/apple-pay-setup.md`](docs/apple-pay-setup.md) for merchant ID creation, certificates, Xcode entitlements, and device testing.
-- **Google Pay (Android):** follow [`docs/google-pay-setup.md`](docs/google-pay-setup.md) to configure the business profile, tokenization settings, and runtime JSON payloads.
+- **Apple Pay (iOS):** see [`docs/apple-pay-setup.md`](https://github.com/Cap-go/capacitor-pay/blob/main/docs/apple-pay-setup.md) for merchant ID creation, certificates, Xcode entitlements, and device testing.
+- **Google Pay (Android):** follow [`docs/google-pay-setup.md`](https://github.com/Cap-go/capacitor-pay/blob/main/docs/google-pay-setup.md) to configure the business profile, tokenization settings, and runtime JSON payloads.
 
 Finish both guides once per app to unlock the native payment sheets on devices.
 
